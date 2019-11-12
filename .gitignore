@@ -1,0 +1,14 @@
+/dist
+/tmp
+/ideas
+typings
+lib
+es6
+coverage
+
+# deps
+node_modules
+
+# misc
+/.vscode
+*.log

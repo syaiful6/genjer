@@ -1,0 +1,11 @@
+{
+  "name": "genjer",
+  "version": "0.1.0",
+  "description": "frontend application structure",
+  "main": "lib/index.js",
+  "author": "Syaiful Bahri",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^3.7.2"
+  }
+}
