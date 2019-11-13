@@ -7,10 +7,6 @@
   "module": "es/index.js",
   "author": "Syaiful Bahri",
   "license": "MIT",
-  "devDependencies": {
-    "typescript": "^3.7.2",
-    "@jonggrang/task": "^1.0.0"
-  },
   "dependencies": {
     "@jonggrang/prelude": "^1.0.0",
     "snabbdom": "^0.7.3"
@@ -18,7 +14,21 @@
   "peerDependencies": {
     "@jonggrang/task": "^1.0.0"
   },
+  "devDependencies": {
+    "typescript": "^3.7.2",
+    "@jonggrang/task": "^1.0.0",
+    "karma": "^3.0.0",
+    "karma-browserstack-launcher": "^1.3.0",
+    "karma-chrome-launcher": "^2.2.0",
+    "karma-firefox-launcher": "^1.2.0",
+    "karma-mocha": "^1.3.0",
+    "karma-typescript": "^3.0.13",
+    "mocha": "^5.2.0",
+    "@types/mocha": "^5.2.1",
+    "@types/node": "^12.12.7"
+  },
   "scripts": {
+    "test": "karma start",
     "compile": "npm run compile-es && npm run compile-commonjs",
     "compile-es": "tsc --outDir es --module es6 --moduleResolution node",
     "compile-commonjs": "tsc --outDir lib"

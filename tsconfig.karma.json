@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES5",
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "strictNullChecks": true,
+    "declaration": true,
+    "removeComments": false,
+    "noUnusedLocals": true,
+    "moduleResolution": "node",
+    "lib": [
+      "dom",
+      "es5",
+      "es2015.promise",
+      "es2015.core",
+      "es2015.iterable",
+      "es2015.generator"
+    ]
+  },
+  "includes": [
+    "src/**/*",
+    "test/**/*"
+  ]
+}

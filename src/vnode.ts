@@ -85,7 +85,7 @@ export function mapVNode<A, B>(f: (_: A) => B, v: VNode<A>): VNode<B> {
     const ndata = T.assign({}, v.data, {
       cofn: T.o(f, data.cofn as any)
     }) as VNodeData<B>;
-    return T.set('data', ndata, v as any);
+    return V.vnode(v.sel, ndata, v.children, v.text, v.elm as Element);
   }
   if (typeof data.cofn === 'function') {
     return V.vnode(v.sel,

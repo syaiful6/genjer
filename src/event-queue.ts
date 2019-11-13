@@ -82,8 +82,6 @@ export function withAccumArray<I, O>(specFn: (ei: EventQueueInstance<O>) => (i: 
   });
 }
 
-type Ref<A> = { value: A };
-
 export function fix<I>(proc: EventQueue<I, I>): EventQueueInstance<I> {
   let queue: I[] = [];
   let machine: Loop<I> | null = null;
@@ -122,23 +120,4 @@ export function fix<I>(proc: EventQueue<I, I>): EventQueueInstance<I> {
   machine = proc(inst);
 
   return inst;
-}
-
-function foldr_<A, B>(
-  f: (a: A, b: B) => B,
-  b: B,
-  fa: A | null | undefined
-): B {
-  if (fa == null) return b;
-  return f(fa, b);
-}
-
-function traverse_<A, B>(
-  f: (_: A) => B,
-  fa: A | null | undefined
-): void {
-  return foldr_((a, b) => {
-    f(a);
-    return b;
-  }, void 0, fa);
 }
