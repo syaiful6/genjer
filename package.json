@@ -3,9 +3,24 @@
   "version": "0.1.0",
   "description": "frontend application structure",
   "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "module": "es/index.js",
   "author": "Syaiful Bahri",
   "license": "MIT",
   "devDependencies": {
-    "typescript": "^3.7.2"
+    "typescript": "^3.7.2",
+    "@jonggrang/task": "^1.0.0"
+  },
+  "dependencies": {
+    "@jonggrang/prelude": "^1.0.0",
+    "snabbdom": "^0.7.3"
+  },
+  "peerDependencies": {
+    "@jonggrang/task": "^1.0.0"
+  },
+  "scripts": {
+    "compile": "npm run compile-es && npm run compile-commonjs",
+    "compile-es": "tsc --outDir es --module es6 --moduleResolution node",
+    "compile-commonjs": "tsc --outDir lib"
   }
 }

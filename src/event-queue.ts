@@ -46,3 +46,99 @@ export function withCont<I, O>(k: (eo: EventQueueInstance<O>, i: I) => void): Ev
     return tick();
   };
 }
+
+export function withAccum<S, I, O>(specFn: (ei: EventQueueInstance<O>) => EventQueueAccum<S, I>): EventQueue<I, O> {
+  return (next) => {
+    const spec = specFn(next);
+    function tick(s: S) {
+      return {
+        loop: (i: I) => update(s, i),
+        tick: commit(s)
+      };
+    }
+    function update(s: S, i: I) {
+      return tick(spec.update(s, i));
+    }
+    function commit(s: S) {
+      return () => tick(spec.commit(s));
+    }
+    return tick(spec.init);
+  };
+}
+
+export function withAccumArray<I, O>(specFn: (ei: EventQueueInstance<O>) => (i: I[]) => void): EventQueue<I, O>{
+  return withAccum(next => {
+    const spec = specFn(next);
+    function update(b: I[], i: I) {
+      let b2 = b.slice();
+      b2.push(i);
+      return b2;
+    }
+    function commit(buf: I[]) {
+      spec(buf);
+      return [];
+    }
+    return {commit, update, init: []};
+  });
+}
+
+type Ref<A> = { value: A };
+
+export function fix<I>(proc: EventQueue<I, I>): EventQueueInstance<I> {
+  let queue: I[] = [];
+  let machine: Loop<I> | null = null;
+
+  function push(i: I): void {
+    let ys = queue.slice();
+    ys.push(i);
+    queue = ys;
+  }
+
+  function run(): void {
+    let current = machine;
+    machine = null;
+    if (current != null) loop(current);
+  }
+
+  function loop(mc: Loop<I>): void {
+    while (true) {
+      if (queue.length > 0) {
+        let head = queue[0];
+        queue = queue.slice(1);
+        mc = mc.loop(head)
+      } else {
+        let st = mc.tick();
+        if (queue.length === 0) {
+          machine = st;
+          queue = [];
+          return;
+        }
+        mc = st;
+      }
+    }
+  }
+
+  const inst: EventQueueInstance<I> = {run, push};
+  machine = proc(inst);
+
+  return inst;
+}
+
+function foldr_<A, B>(
+  f: (a: A, b: B) => B,
+  b: B,
+  fa: A | null | undefined
+): B {
+  if (fa == null) return b;
+  return f(fa, b);
+}
+
+function traverse_<A, B>(
+  f: (_: A) => B,
+  fa: A | null | undefined
+): void {
+  return foldr_((a, b) => {
+    f(a);
+    return b;
+  }, void 0, fa);
+}
