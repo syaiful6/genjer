@@ -6,6 +6,11 @@
     "declaration": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "strictNullChecks": true,
+    "removeComments": false,
+    "noUnusedLocals": true,
     "lib": [
       "dom",
       "es5",
@@ -18,10 +23,5 @@
       "mocha",
       "node"
     ]
-  },
-  "include": [
-    "src/**/*",
-    "test/**/*"
-  ],
-  "exclude": ["node_modules"]
+  }
 }

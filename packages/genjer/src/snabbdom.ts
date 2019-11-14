@@ -27,7 +27,7 @@ export function createModuleRef<A>(emit: (_: A) => void): Module {
     if (ref == undefined) return;
     if (typeof ref.created === 'function') {
       let ret = ref.created(vnode.elm as Element);
-      if (ret != undefined) emit(ret);
+      if (typeof ret != 'undefined') emit(ret);
     }
   }
 
@@ -36,7 +36,7 @@ export function createModuleRef<A>(emit: (_: A) => void): Module {
     if (ref == undefined) return;
     if (typeof ref.removed === 'function') {
       let ret = ref.removed(vnode.elm as Element);
-      if (ret != undefined) emit(ret);
+      if (typeof ret != 'undefined') emit(ret);
     }
   }
 
