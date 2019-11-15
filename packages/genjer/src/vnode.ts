@@ -163,6 +163,16 @@ export function mutmapVNode<A, B>(f: (_: A) => B, v: VNode<A>, parent: boolean):
     }
     (v.data as any).events = nevents;
   }
+  if (data && data.ref) {
+    let nref: Partial<ElemRef<B>> = {};
+    if (data.ref.created != null) {
+      nref.created = T.o(mapUndef(f), data.ref.created);
+    }
+    if (data.ref.removed != null) {
+      nref.removed = T.o(mapUndef(f), data.ref.removed);
+    }
+    (v.data as any).ref = nref;
+  }
   v.children = v.children != undefined ? v.children.map(c => {
     if (typeof c === 'string') return c;
     mutmapVNode(f, c, false);
@@ -209,4 +219,8 @@ export function pipeEvHandler<E, A, B>(
   g: HandlerFnOrObject<A, B>
 ): HandlerFnOrObject<E, B> {
   return new PipeEventHandler(f, g);
+}
+
+export function mapUndef<A, B>(f: (_: A) => B): (x: A | void) => B | void {
+  return x => x != null ? f(x) : x as any;
 }

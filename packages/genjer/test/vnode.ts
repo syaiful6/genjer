@@ -45,24 +45,28 @@ describe('VNode', () => {
     assert.deepEqual(results[0], {tag: 'click', value: 'clicked'});
   });
 
-  it('Can map Vnode', () => {
+  it('can map Vnode', () => {
     function handleClick(): TestEvent<number> {
       return {
         tag: 'click',
         value: 10
       };
     }
+    function handleElemRef(): TestEvent<number> {
+      return {tag: 'created', value: 5};
+    }
     let vnode = mapVNode(
       mapClicked,
-      h('button', {events: {click: handleClick}}, 'btn')
+      h('button', {events: {click: handleClick}, ref: {created: handleElemRef}}, 'btn')
     );
     let dom = patch(elm, vnode).elm;
     (dom as any).click();
-    assert.equal(results.length, 1);
-    assert.deepEqual(results[0], { tag: 'click-mapped', value: '10' });
+    assert.equal(results.length, 2);
+    assert.deepEqual(results[0], { tag: 'created-mapped', value: '5' });
+    assert.deepEqual(results[1], { tag: 'click-mapped', value: '10' });
   });
 
-  it('Can map deep vnode', () => {
+  it('can map deep vnode', () => {
     function handleClick(): TestEvent<number> {
       return {
         tag: 'click',

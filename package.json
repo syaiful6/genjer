@@ -24,6 +24,7 @@
   ],
   "scripts": {
     "bootstrap": "lerna bootstrap && lerna link",
+    "test": "karma start",
     "compile": "lerna run compile",
     "release:pre": "yarn build",
     "release:next": "yarn release:pre && lerna publish --exact --canary=next --npm-tag=next -- --access=public",

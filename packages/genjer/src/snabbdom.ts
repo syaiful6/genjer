@@ -22,12 +22,12 @@ export function initRender<A>(emit: (_: A) => void): (old: VDom<A> | Element, vn
 }
 
 export function createModuleRef<A>(emit: (_: A) => void): Module {
-  function create(empty: VNode, vnode: VNode) {
+  function create(_: VNode, vnode: VNode) {
     let ref: ElemRef<A> | undefined = vnode && vnode.data ? (vnode.data as VNodeData).ref : undefined;
     if (ref == undefined) return;
     if (typeof ref.created === 'function') {
       let ret = ref.created(vnode.elm as Element);
-      if (typeof ret != 'undefined') emit(ret);
+      if (ret != null) emit(ret);
     }
   }
 
@@ -36,7 +36,7 @@ export function createModuleRef<A>(emit: (_: A) => void): Module {
     if (ref == undefined) return;
     if (typeof ref.removed === 'function') {
       let ret = ref.removed(vnode.elm as Element);
-      if (typeof ret != 'undefined') emit(ret);
+      if (ret != null) emit(ret);
     }
   }
 
