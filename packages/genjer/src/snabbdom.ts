@@ -1,27 +1,14 @@
 import {Module} from 'snabbdom/modules/module';
-import ClassModule from 'snabbdom/modules/class';
-import PropsModule from 'snabbdom/modules/props';
-import AttrsModule from 'snabbdom/modules/attributes';
-import StyleModule from 'snabbdom/modules/style';
-import DatasetModule from 'snabbdom/modules/dataset';
 import { VNode, VNodeData } from 'snabbdom/vnode';
 
 import {HandlerFnOrObject, runEvHandler, ElemRef, VNode as VDom} from './vnode';
 import {init} from 'snabbdom';
 
-export function initRender<A>(emit: (_: A) => void): (old: VDom<A> | Element, vnode: VDom<A>) => VDom<A> {
-  return init([
-    ClassModule,
-    PropsModule,
-    AttrsModule,
-    StyleModule,
-    DatasetModule,
-    createModuleListener(emit),
-    createModuleRef(emit),
-  ]);
+export function initRender<A>(emit: (_: A) => void, modules: Partial<Module>[]): (old: VDom<A> | Element, vnode: VDom<A>) => VDom<A> {
+  return init([createModuleListener(emit), createModuleRef(emit)].concat(modules))
 }
 
-export function createModuleRef<A>(emit: (_: A) => void): Module {
+export function createModuleRef<A>(emit: (_: A) => void): Partial<Module> {
   function create(_: VNode, vnode: VNode) {
     let ref: ElemRef<A> | undefined = vnode && vnode.data ? (vnode.data as VNodeData).ref : undefined;
     if (ref == undefined) return;
@@ -43,10 +30,10 @@ export function createModuleRef<A>(emit: (_: A) => void): Module {
   return {
     create,
     destroy
-  } as Module;
+  };
 }
 
-export function createModuleListener<A>(emit: (_: A) => void): Module {
+export function createModuleListener<A>(emit: (_: A) => void): Partial<Module> {
   function updateEventListener(old: VNode, vnode?: VNode) {
     let on: HandlerFnOrObject<Event, A> | undefined = vnode && vnode.data ? (vnode.data as VNodeData).events : undefined,
       oldOn: HandlerFnOrObject<Event, A> | undefined = old.data ? (old.data as VNodeData).events : undefined,
@@ -96,7 +83,7 @@ export function createModuleListener<A>(emit: (_: A) => void): Module {
     create: updateEventListener,
     update: updateEventListener,
     destroy: updateEventListener
-  } as Module;
+  };
 }
 
 class EventDict {

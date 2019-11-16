@@ -1,5 +1,5 @@
 export {
-  App, AppInstance, AppChange, AppActionType, AppAction, makeAppQueue,
+  App, AppInstance, AppChange, AppActionType, AppAction, MakeAppOptions, makeAppQueue,
   make
 } from './genjer';
 export { VNode, VNodeData, HandlerFnOrObject, pipeEvHandler, runEvHandler, mapVNode } from './vnode';

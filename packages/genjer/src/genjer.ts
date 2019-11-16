@@ -1,4 +1,4 @@
-
+import {Module} from 'snabbdom/modules/module';
 import { Either, left, right } from '@jonggrang/prelude';
 import {Loop, EventQueue, withAccum, fix} from './event-queue';
 import {initRender} from './snabbdom';
@@ -45,13 +45,19 @@ type AppState<M, Q, S> = {
   snabbdom: (s: S) => void;
 };
 
+export type MakeAppOptions = {
+  modules: Partial<Module>[];
+}
+
 export function makeAppQueue<M, Q, S, I>(
   onChange: (c: AppChange<S, I>) => void,
   interpreter: EventQueue<Either<M, Q>, I>,
   app: App<M, Q, S, I>,
-  el: Element
+  el: Element,
+  options?: Partial<MakeAppOptions>
 ): EventQueue<AppAction<M, Q, S, I>, AppAction<M, Q, S, I>> {
   return withAccum(self => {
+    const opts: Partial<MakeAppOptions> = options || {};
     function pushAction(a: I) {
       return self.push({ tag: AppActionType.ACTION, payload: a });
     }
@@ -112,7 +118,7 @@ export function makeAppQueue<M, Q, S, I>(
       self.run();
     }
 
-    const snabbdom = snabbdomStep(emit, app.render, app.init.model, el);
+    const snabbdom = snabbdomStep(emit, app.render, app.init.model, el, opts.modules || []);
     const it2  = interpreter(assign({}, self, {push: (e: I) => self.push({tag: AppActionType.ACTION, payload: e})}));
     forInFn(app.init.effects, pushEffect);
     let st: AppState<M, Q, S> = {
@@ -133,7 +139,8 @@ interface SubscriptionState<S, I> {
 export function make<M, Q, S, I>(
   interpreter: EventQueue<Either<M, Q>, I>,
   app: App<M, Q, S, I>,
-  el: Element
+  el: Element,
+  options?: Partial<MakeAppOptions>
 ): AppInstance<S, I> {
   let subs: SubscriptionState<S, I> = {fresh: 0, cbs: {}};
   let state: S = app.init.model;
@@ -156,7 +163,7 @@ export function make<M, Q, S, I>(
     };
   }
 
-  let queue = fix(makeAppQueue(handleChange, interpreter, app, el));
+  let queue = fix(makeAppQueue(handleChange, interpreter, app, el, options));
 
   return {
     subscribe,
@@ -171,9 +178,10 @@ function snabbdomStep<I, S>(
   emit: (_: I) => void,
   render: (model: S) => VNode<I>,
   init: S,
-  el: Element
+  el: Element,
+  modules: Partial<Module>[]
 ): (_: S) => void {
-  let snab = renderStep(initRender(emit), render, el);
+  let snab = renderStep(initRender(emit, modules), render, el);
   snab(init);
   return snab;
 }
