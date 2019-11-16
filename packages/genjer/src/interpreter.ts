@@ -25,11 +25,11 @@ export function interpretNever<A>(): EventQueue<never, A> {
   return stepper(() => { throw new Error('never interpreter received input') });
 }
 
-export function liftCont<F, I>(k: (c: (j: I) => void, fi: F) => void): EventQueue<F, I> {
+export function liftCont<F, I>(k: (fi: F, c: (j: I) => void) => void): EventQueue<F, I> {
   return withCont((queue, f) => {
-    k(j => {
+    k(f, j => {
       queue.push(j);
       queue.run();
-    }, f);
+    });
   });
 }
