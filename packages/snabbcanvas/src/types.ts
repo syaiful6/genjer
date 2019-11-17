@@ -1,4 +1,4 @@
-export enum CommandType {
+export const enum CommandType {
   FIELD = 'field',
   FUNCTION = 'function'
 };
@@ -16,3 +16,5 @@ export type FunctionCommand = {
 }
 
 export type Command = FieldCommand | FunctionCommand;
+
+export type Commands = Command[];

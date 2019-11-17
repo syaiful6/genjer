@@ -4,16 +4,16 @@ import {VNode} from 'snabbdom/vnode';
 import Attribute from 'snabbdom/modules/attributes';
 import Props from 'snabbdom/modules/props';
 
-import {CanvasModule, CommandType} from '../src';
+import {CanvasModule, commands} from '../src';
 
 const patch = init([Attribute, Props, CanvasModule]);
 
 function render(): VNode {
   return h('canvas', {
     draw2d: [
-      {type: CommandType.FUNCTION, name: 'fillRect', args: [25, 25, 100, 100]},
-      {type: CommandType.FUNCTION, name: 'clearRect', args: [45, 45, 60, 60]},
-      {type: CommandType.FUNCTION, name: 'strokeRect', args: [50, 50, 50, 50]},
+      commands.fn('fillRect', 25, 25, 100, 100),
+      commands.fn('clearRect', 45, 45, 60, 60),
+      commands.fn('strokeRect', 50, 50, 50, 50),
     ]
   }, ['your browser didn\'t support canvas']);
 }
