@@ -13,7 +13,7 @@ describe('Thunk', () => {
   let patch: (old: Element | VNode<any>, vnode: VNode<any>) => VNode<any>;
   beforeEach(() => {
     elm = document.createElement('div');
-    patch = initRender(id);
+    patch = initRender(id, []);
   });
 
   it('returns vnode with data and render function', () => {

@@ -5,7 +5,7 @@ import {HandlerFnOrObject, runEvHandler, ElemRef, VNode as VDom} from './vnode';
 import {init} from 'snabbdom';
 
 export function initRender<A>(emit: (_: A) => void, modules: Partial<Module>[]): (old: VDom<A> | Element, vnode: VDom<A>) => VDom<A> {
-  return init([createModuleListener(emit), createModuleRef(emit)].concat(modules))
+  return init(modules.concat([createModuleListener(emit), createModuleRef(emit)]));
 }
 
 export function createModuleRef<A>(emit: (_: A) => void): Partial<Module> {

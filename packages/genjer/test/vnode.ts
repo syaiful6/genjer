@@ -27,7 +27,7 @@ describe('VNode', () => {
   beforeEach(() => {
     elm = document.createElement('div');
     results = [];
-    patch = initRender(emit);
+    patch = initRender(emit, []);
   });
 
   it('Listener send event to emitter', () => {
