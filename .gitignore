@@ -12,3 +12,5 @@ node_modules
 # misc
 /.vscode
 *.log
+packages/**/examples/*.js
+packages/**/examples/*.js.map
