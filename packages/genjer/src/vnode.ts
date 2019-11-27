@@ -91,22 +91,32 @@ export function mapVNode<A, B>(f: (_: A) => B, v: VNode<A>): VNode<B> {
     return V.vnode(v.sel,
       T.assign({}, data as any, {
         cofn: T.o(f, data.cofn),
-        hook: {
-          init: initMapHook,
-          prepatch: prepatchMapHook
-        }
       }),
       v.children, v.text, v.elm as Element);
   }
   return V.vnode(v.sel,
     T.assign({}, data as any, {
       cofn: f,
-      hook: {
-        init: initMapHook,
-        prepatch: prepatchMapHook
-      }
+      hook: T.assign({}, data.hook || {}, {
+        init: data && data.hook && data.hook.init ? initMapHookWith(data.hook.init): initMapHook,
+        prepatch: data && data.hook && data.hook.prepatch ? prepatchMapHookWith(data.hook.prepatch): prepatchMapHook,
+      })
     }),
     v.children, v.text, v.elm as Element);
+}
+
+function initMapHookWith(init: typeof initMapHook): typeof initMapHook {
+  return (vnode) => {
+    initMapHook(vnode);
+    init(vnode);
+  }
+}
+
+function prepatchMapHookWith(prepatch: typeof prepatchMapHook): typeof prepatchMapHook {
+  return (old, vnode) => {
+    prepatchMapHook(old, vnode);
+    prepatch(old, vnode);
+  }
 }
 
 function initMapHook(vnode: VNode<any>) {
@@ -118,7 +128,7 @@ function prepatchMapHook(old: VNode<any>, vnode: VNode<any>) {
   initMapHook(vnode);
 }
 
-function runThunk(thunk: Thunk<any>) {
+export function runThunk(thunk: Thunk<any>) {
   const cur = thunk.data as VNodeData<any>;
   let vnode = (cur.render as any).apply(undefined, cur.args);
   mutmapVNode(cur.cofn as any, vnode, false);
@@ -180,7 +190,7 @@ export function mutmapVNode<A, B>(f: (_: A) => B, v: VNode<A>, parent: boolean):
   }) : undefined;
 }
 
-function copyToThunk(vnode: VNode<any>, thunk: VNode<any>): void {
+export function copyToThunk(vnode: VNode<any>, thunk: VNode<any>): void {
   thunk.elm = vnode.elm;
   (vnode.data as VNodeData<any>).render = (thunk.data as VNodeData<any>).render;
   (vnode.data as VNodeData<any>).args = (thunk.data as VNodeData<any>).args;

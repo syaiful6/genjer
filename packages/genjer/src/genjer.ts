@@ -1,10 +1,14 @@
 import {Module} from 'snabbdom/modules/module';
 import { Either, left, right } from '@jonggrang/prelude';
 import {Loop, EventQueue, withAccum, fix} from './event-queue';
+import {mergeInterpreter, interpretNever} from './interpreter'
 import {initRender} from './snabbdom';
+import {purely} from './transition'
+import {microTask} from './microtask';
 import {Transition, Batch} from './types';
 import {assign, recordValues} from './utils';
 import {VNode} from './vnode';
+import {currentSignal, makeSignal} from './signal'
 
 export interface App<F, G, S, A> {
   render: (model: S) => VNode<A>;
@@ -30,19 +34,29 @@ export interface AppChange<S, A> {
 export const enum AppActionType {
   RESTORE,
   ACTION,
-  INTERPRET
+  INTERPRET,
+  RENDER,
+  FORCERENDER
 }
 
-export type AppAction<M, Q, S, I>
+const enum RenderStatus {
+  NOCHANGE,
+  PENDING,
+  FLUSHED
+}
+
+type AppAction<M, Q, S, I>
   = { tag: AppActionType.RESTORE; payload: S }
   | { tag: AppActionType.ACTION; payload: I }
-  | { tag: AppActionType.INTERPRET; payload: Either<M, Q> };
+  | { tag: AppActionType.INTERPRET; payload: Either<M, Q> }
+  | { tag: AppActionType.RENDER }
+  | { tag: AppActionType.FORCERENDER };
 
-type AppState<M, Q, S> = {
+type AppState<M, Q, S, I> = {
   model: S;
-  needsRender: boolean;
   interpret: Loop<Either<M, Q>>;
-  snabbdom: (s: S) => void;
+  status: RenderStatus;
+  vdom: VNode<I>;
 };
 
 export type MakeAppOptions = {
@@ -58,22 +72,39 @@ export function makeAppQueue<M, Q, S, I>(
 ): EventQueue<AppAction<M, Q, S, I>, AppAction<M, Q, S, I>> {
   return withAccum(self => {
     const opts: Partial<MakeAppOptions> = options || {};
+    const patch = initRender(emit, opts.modules || []);
+    let ourSignal = makeSignal({});
+    ourSignal.subscribe(pushForce);
     function pushAction(a: I) {
       return self.push({ tag: AppActionType.ACTION, payload: a });
     }
+
     function pushEffect(ef: M) {
       return self.push({ tag: AppActionType.INTERPRET, payload: left(ef) });
     }
+
+    function pushForce() {
+      self.push({ tag: AppActionType.FORCERENDER });
+      self.run();
+    }
+
     function runSubs(lo: Loop<Either<M, Q>>, subs: Q[]) {
       for (let i = 0, len = subs.length; i < len; i++) {
         lo = lo.loop(right(subs[i]));
       }
       return lo;
     }
-    function update(state: AppState<M, Q, S>, action: AppAction<M, Q, S, I>): AppState<M, Q, S> {
+
+    function pushRender() {
+      self.push({ tag: AppActionType.RENDER });
+      self.run();
+    }
+
+    function update(state: AppState<M, Q, S, I>, action: AppAction<M, Q, S, I>): AppState<M, Q, S, I> {
       let next: Transition<M, S, I>,
-        needsRender: boolean,
-        nextState: AppState<M, Q, S>,
+        status: RenderStatus,
+        vdom: VNode<I>,
+        nextState: AppState<M, Q, S, I>,
         appChange: AppChange<S, I>;
       switch(action.tag) {
       case AppActionType.INTERPRET:
@@ -83,34 +114,38 @@ export function makeAppQueue<M, Q, S, I>(
 
       case AppActionType.ACTION:
         next = app.update(state.model, action.payload);
-        needsRender = state.needsRender || state.model !== next.model;
-        nextState = assign({}, state, {
-          needsRender,
-          model: next.model
-        });
+        status = nextStatus(state.model, next.model, state.status);
+        nextState = {...state, model: next.model, status}
         appChange = {old: state.model, action: action.payload, model: nextState.model};
         onChange(appChange);
         forInFn(next.effects, pushEffect);
         return nextState;
 
       case AppActionType.RESTORE:
-        needsRender = state.needsRender || state.model !== action.payload;
-        nextState = assign({}, state, {needsRender, model: action.payload});
-        return nextState;
+        status = nextStatus(state.model, action.payload, state.status);
+        return {...state, status, model: action.payload};
+
+      case AppActionType.FORCERENDER:
+        return {...state, status: RenderStatus.PENDING}
+
+      case AppActionType.RENDER:
+        // during render use switch current signal
+        currentSignal.current = ourSignal;
+        vdom = patch(state.vdom, app.render(state.model));
+        currentSignal.current = null;
+        return {...state, vdom, status: RenderStatus.FLUSHED};
       }
     }
 
-    function commit(state: AppState<M, Q, S>): AppState<M, Q, S> {
-      if (state.needsRender) {
-        state.snabbdom(state.model);
+    function commit(state: AppState<M, Q, S, I>): AppState<M, Q, S, I> {
+      if (state.status === RenderStatus.FLUSHED) {
+        return {...state, status: RenderStatus.NOCHANGE};
+      }
+      if (state.status === RenderStatus.PENDING) {
+        microTask(pushRender);
       }
       const tickInterpret = runSubs(state.interpret, app.subs(state.model));
-      return {
-        snabbdom: state.snabbdom,
-        model: state.model,
-        interpret: tickInterpret,
-        needsRender: false,
-      };
+      return {...state, interpret: tickInterpret, status: RenderStatus.NOCHANGE};
     }
 
     function emit(a: I) {
@@ -118,13 +153,16 @@ export function makeAppQueue<M, Q, S, I>(
       self.run();
     }
 
-    const snabbdom = snabbdomStep(emit, app.render, app.init.model, el, opts.modules || []);
+    currentSignal.current = ourSignal;
+    const vdom = patch(el, app.render(app.init.model));
+    currentSignal.current = null;
+
     const it2  = interpreter(assign({}, self, {push: (e: I) => self.push({tag: AppActionType.ACTION, payload: e})}));
     forInFn(app.init.effects, pushEffect);
-    let st: AppState<M, Q, S> = {
-      snabbdom,
+    let st: AppState<M, Q, S, I> = {
+      vdom,
+      status: RenderStatus.NOCHANGE,
       interpret: it2,
-      needsRender: false,
       model: app.init.model
     };
     return {update, commit, init: st}
@@ -174,60 +212,43 @@ export function make<M, Q, S, I>(
   }
 }
 
-function snabbdomStep<I, S>(
-  emit: (_: I) => void,
-  render: (model: S) => VNode<I>,
-  init: S,
-  el: Element,
-  modules: Partial<Module>[]
-): (_: S) => void {
-  let snab = renderStep(initRender(emit, modules), render, el);
-  snab(init);
-  return snab;
+function nextStatus<S>(prev: S, next: S, status: RenderStatus): RenderStatus {
+  switch (status) {
+  case RenderStatus.NOCHANGE:
+    return prev === next ? RenderStatus.NOCHANGE : RenderStatus.PENDING;
+  case RenderStatus.FLUSHED:
+    return RenderStatus.NOCHANGE;
+  case RenderStatus.PENDING:
+    return RenderStatus.PENDING;
+  }
+}
+
+export type PureApp<S, A> = {
+  render: (model: S) => VNode<A>;
+  update: (model: S, action: A) => S;
+  init: S;
+}
+
+export function makePureApp<S, A>(app: PureApp<S, A>, el: Element, opts?: Partial<MakeAppOptions>) {
+  return make(
+    mergeInterpreter(interpretNever(), interpretNever()),
+    liftPureApp(app),
+    el,
+    opts
+  )
+}
+
+export function liftPureApp<S, A>(app: PureApp<S, A>): App<never, never, S, A> {
+  return {
+    render: app.render,
+    update: (model, action) => purely(app.update(model, action)),
+    init: purely(app.init),
+    subs: () => [],
+  }
 }
 
 function forInFn<A, B>(xs: A[], f: (a: A) => void): void {
   for (let i = 0, len = xs.length; i < len; i++) {
     f(xs[i]);
   }
-}
-
-const enum RenderStep {
-  NOREQUEST,
-  PENDINGREQUEST,
-  EXTRAREQUEST
-}
-
-function renderStep<A, S>(
-  patch: (old: VNode<A> | Element, vnode: VNode<A>) => VNode<A>,
-  render: ( model: S) => VNode<A>,
-  root: Element
-) {
-  let old: VNode<A> | Element = root;
-  let state: RenderStep = RenderStep.NOREQUEST;
-  let nextModel: S;
-  function update() {
-    switch (state) {
-      case RenderStep.NOREQUEST:
-        throw new Error('Unexpected draw callback.\n');
-
-      case RenderStep.PENDINGREQUEST:
-        requestAnimationFrame(update);
-        state = RenderStep.EXTRAREQUEST;
-        old = patch(old, render(nextModel));
-        break;
-
-      case RenderStep.EXTRAREQUEST:
-        state = RenderStep.NOREQUEST;
-        break;
-    }
-  }
-
-  return function step(s: S) {
-    if (state === RenderStep.NOREQUEST) {
-      requestAnimationFrame(update);
-    }
-    state = RenderStep.PENDINGREQUEST;
-    nextModel = s;
-  };
 }

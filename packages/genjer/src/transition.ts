@@ -1,10 +1,10 @@
 import {Transition, Batch, Functor} from './types';
 
-export function transition<M, S, A>(model: S, effects: Batch<M, A>): Transition<M, S, A> {
+export function transition<M = any, S = any, A = any>(model: S, effects: Batch<M, A>): Transition<M, S, A> {
   return {model, effects};
 }
 
-export function purely<M, S>(model: S): Transition<M, S, any> {
+export function purely<M = any, S = any>(model: S): Transition<M, S, any> {
   return transition(model, []);
 }
 
