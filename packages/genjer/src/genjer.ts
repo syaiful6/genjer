@@ -4,11 +4,11 @@ import {Loop, EventQueue, withAccum, fix} from './event-queue';
 import {mergeInterpreter, interpretNever} from './interpreter'
 import {initRender} from './snabbdom';
 import {purely} from './transition'
-import {microTask} from './microtask';
 import {Transition, Batch} from './types';
 import {assign, recordValues} from './utils';
 import {VNode} from './vnode';
-import {currentSignal, makeSignal} from './signal'
+import {currentSignal, makeSignal, Signal} from './signal';
+import {scheduleCallback, PriorityLevel} from './scheduler';
 
 export interface App<F, G, S, A> {
   render: (model: S) => VNode<A>;
@@ -75,6 +75,7 @@ export function makeAppQueue<M, Q, S, I>(
     const patch = initRender(emit, opts.modules || []);
     let ourSignal = makeSignal({});
     ourSignal.subscribe(pushForce);
+
     function pushAction(a: I) {
       return self.push({ tag: AppActionType.ACTION, payload: a });
     }
@@ -84,8 +85,10 @@ export function makeAppQueue<M, Q, S, I>(
     }
 
     function pushForce() {
-      self.push({ tag: AppActionType.FORCERENDER });
-      self.run();
+      scheduleCallback(PriorityLevel.NormalPriority, () => {
+        self.push({ tag: AppActionType.FORCERENDER });
+        self.run();
+      });
     }
 
     function runSubs(lo: Loop<Either<M, Q>>, subs: Q[]) {
@@ -105,7 +108,8 @@ export function makeAppQueue<M, Q, S, I>(
         status: RenderStatus,
         vdom: VNode<I>,
         nextState: AppState<M, Q, S, I>,
-        appChange: AppChange<S, I>;
+        appChange: AppChange<S, I>,
+        prevSignal: Signal<any> | null;
       switch(action.tag) {
       case AppActionType.INTERPRET:
         return assign({}, state, {
@@ -117,8 +121,10 @@ export function makeAppQueue<M, Q, S, I>(
         status = nextStatus(state.model, next.model, state.status);
         nextState = {...state, model: next.model, status}
         appChange = {old: state.model, action: action.payload, model: nextState.model};
-        onChange(appChange);
-        forInFn(next.effects, pushEffect);
+        scheduleCallback(PriorityLevel.NormalPriority, () => {
+          onChange(appChange);
+          forInFn(next.effects, pushEffect);
+        });
         return nextState;
 
       case AppActionType.RESTORE:
@@ -130,9 +136,10 @@ export function makeAppQueue<M, Q, S, I>(
 
       case AppActionType.RENDER:
         // during render use switch current signal
+        prevSignal = currentSignal.current;
         currentSignal.current = ourSignal;
         vdom = patch(state.vdom, app.render(state.model));
-        currentSignal.current = null;
+        currentSignal.current = prevSignal;
         return {...state, vdom, status: RenderStatus.FLUSHED};
       }
     }
@@ -142,23 +149,31 @@ export function makeAppQueue<M, Q, S, I>(
         return {...state, status: RenderStatus.NOCHANGE};
       }
       if (state.status === RenderStatus.PENDING) {
-        microTask(pushRender);
+        scheduleCallback(PriorityLevel.NormalPriority, () => {
+          pushRender();
+        });
       }
+
       const tickInterpret = runSubs(state.interpret, app.subs(state.model));
       return {...state, interpret: tickInterpret, status: RenderStatus.NOCHANGE};
     }
 
     function emit(a: I) {
-      pushAction(a);
-      self.run();
+      scheduleCallback(PriorityLevel.UserBlockingPriority, () => {
+        pushAction(a);
+        self.run();
+      });
     }
 
+    const prevSignal = currentSignal.current;
     currentSignal.current = ourSignal;
     const vdom = patch(el, app.render(app.init.model));
-    currentSignal.current = null;
+    currentSignal.current = prevSignal;
 
     const it2  = interpreter(assign({}, self, {push: (e: I) => self.push({tag: AppActionType.ACTION, payload: e})}));
-    forInFn(app.init.effects, pushEffect);
+    scheduleCallback(PriorityLevel.NormalPriority, () => {
+      forInFn(app.init.effects, pushEffect);
+    });
     let st: AppState<M, Q, S, I> = {
       vdom,
       status: RenderStatus.NOCHANGE,

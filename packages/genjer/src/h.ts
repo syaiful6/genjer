@@ -1,6 +1,6 @@
 import {VNode, VNodeData, thunk} from './vnode';
 import * as H from 'snabbdom/h';
-import {component as withCompent} from './hooks';
+import {stateful as withStateful} from './hooks';
 
 export { VNode } from './vnode';
 export type VNodes<A> = Array<VNode<A>>;
@@ -16,28 +16,28 @@ export function h<A = any>(sel: any, b?: any, c?: any): VNode<A> {
   return H.h(sel, b, c) as VNode<A>;
 }
 
-export function component<S, A = any>(
+export function stateful<S, A = any>(
   sel: string, st: S, fn: (_: S) => VNode<A>, key?: string
 ): VNode<A> {
-  return withCompent(sel, fn, [st], key);
+  return withStateful(sel, fn, [st], key);
 }
 
-export function component2<S, T, A = any>(
+export function stateful2<S, T, A = any>(
   sel: string, a: S, b: T, fn: (a: S, b: T) => VNode<A>, key?: string
 ): VNode<A> {
-  return withCompent(sel, fn, [a, b], key);
+  return withStateful(sel, fn, [a, b], key);
 }
 
-export function component3<S, T, U, A = any>(
+export function stateful3<S, T, U, A = any>(
   sel: string, a: S, b: T, c: U, fn: (a: S, b: T) => VNode<A>, key?: string
 ): VNode<A> {
-  return withCompent(sel, fn, [a, b, c], key);
+  return withStateful(sel, fn, [a, b, c], key);
 }
 
-export function component4<S, T, U, V, A = any>(
+export function stateful4<S, T, U, V, A = any>(
   sel: string, a: S, b: T, c: U, d: V, fn: (a: S, b: T) => VNode<A>, key?: string
 ): VNode<A> {
-  return withCompent(sel, fn, [a, b, c, d], key);
+  return withStateful(sel, fn, [a, b, c, d], key);
 }
 
 export function lazy<S, A = any>(

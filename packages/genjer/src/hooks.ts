@@ -2,6 +2,11 @@ import {VNode, Thunk, VNodeData, mutmapVNode} from './vnode';
 import {vnode as CreateVNode} from 'snabbdom/vnode';
 import {currentSignal} from './signal';
 import {id} from './utils';
+import {scheduleCallback, PriorityLevel} from './scheduler';
+
+type Effect = () => void;
+
+type EffectFn = () => Effect | void;
 
 type HookedState = {
   setup: boolean;
@@ -9,7 +14,7 @@ type HookedState = {
   statesIndex: number,
   depsStates: any[],
   depsIndex: number,
-  updates: any[],
+  updates: Effect[],
   cleanups: Map<'_' | number, () => void>
 }
 
@@ -19,20 +24,20 @@ const call = Function.prototype.call.bind(
   Function.prototype.call
 );
 
-// const updateDeps = (deps: null | any[]) => {
-//   const state = currentState;
-//   const depsIndex = state.depsIndex++;
-//   const prevDeps = state.depsStates[depsIndex] || [];
-//   const shouldRecompute = deps === undefined
-//     ? true // Always compute
-//     : Array.isArray(deps)
-//       ? deps.length > 0
-//         ? !deps.every((x,i) => x === prevDeps[i]) // Only compute when one of the deps has changed
-//         : !state.setup // Empty array: only compute at mount
-//       : false; // Invalid value, do nothing
-//   state.depsStates[depsIndex] = deps;
-//   return shouldRecompute;
-// };
+function updateDeps(deps: null | any[]): boolean {
+  const state = currentState;
+  const depsIndex = state.depsIndex++;
+  const prevDeps = state.depsStates[depsIndex] || [];
+  const shouldRecompute = deps === undefined
+    ? true // Always compute
+    : Array.isArray(deps)
+      ? deps.length > 0
+        ? !deps.every((x,i) => x === prevDeps[i]) // Only compute when one of the deps has changed
+        : !state.setup // Empty array: only compute at mount
+      : false; // Invalid value, do nothing
+  state.depsStates[depsIndex] = deps;
+  return shouldRecompute;
+}
 
 function resolveCurrentSignal() {
   let sign = currentSignal.current;
@@ -78,6 +83,49 @@ export function useState<S>(initialValue: S): [S, SetStateFn<S>, number] {
   return updateState(initialValue, newValueFn);
 }
 
+export function useReducer<S, A>(reducer: (s: S, a: A) => S, init: S): [S, (a: A) => void] {
+  const state = currentState;
+  const [value, setValue, index] = updateState(init);
+  const dispatch = (action: A) => {
+    const previousValue = state.states[index];
+    setValue(reducer(previousValue, action))
+  };
+
+  return [value, dispatch];
+}
+
+export function useEffect(fn: EffectFn, deps: any[]) {
+  const state = currentState;
+  const shouldRecompute = updateDeps(deps);
+  if (shouldRecompute) {
+    const depsIndex = state.depsIndex;
+    const signal = resolveCurrentSignal();
+    const runCallbackFn = () => {
+      const teardown = fn();
+      // A callback may return a function. If any, add it to the cleanups:
+      if (typeof teardown === "function") {
+        // Store this this function to be called at cleanup and unmount
+        state.cleanups.set(depsIndex, teardown);
+        // At unmount, call re-render at least once
+        state.cleanups.set("_", () => signal.push({}));
+      }
+    };
+
+    // First clean up any previous cleanup function
+    const teardown = state.cleanups.get(depsIndex);
+    try {
+      if (typeof teardown === "function") {
+        teardown();
+      }
+    }
+    finally {
+      state.cleanups.delete(depsIndex);
+    }
+
+    state.updates.push(() => scheduleCallback(PriorityLevel.LowPriority, runCallbackFn));
+  }
+}
+
 function init(thunk: VNode<any>) {
   (thunk as any).state = {
     setup: false,
@@ -120,35 +168,41 @@ function destroy(vnode: VNode<any>) {
 }
 
 export function prepatch(oldVnode: VNode<any>, thunk: VNode<any>) {
-  (thunk as any).state = (oldVnode as any).state
-  update(oldVnode, thunk);
-  copyToComponent(runComponent(thunk as Thunk<any>), thunk);
+  let old = oldVnode.data as VNodeData<any>, cur = thunk.data as VNodeData<any>;
+  if (old.render === cur.render) {
+    (thunk as any).state = (oldVnode as any).state
+    update(oldVnode, thunk);
+    copyToComponent(runComponent(thunk as Thunk<any>), thunk);
+    return;
+  }
+  destroy(oldVnode);
+  init(thunk);
 }
 
-export function component(sel: string, fn: Function, args: any[], key?: string): Thunk<any> {
-  function render(vnode: VNode<any>, args: []) {
-    const prevState = currentState;
-    currentState = (vnode as any).state;
-    const cur = vnode.data as VNodeData<any>;
-    try {
-      return (cur.view as any).apply(undefined, args);
-    } finally {
-      currentState = prevState;
-    }
+function render(vnode: VNode<any>, args: any[] = []) {
+  const prevState = currentState;
+  currentState = (vnode as any).state;
+  const cur = vnode.data as VNodeData<any>;
+  try {
+    return (cur.render as any).apply(undefined, args);
+  } finally {
+    currentState = prevState;
   }
+}
+
+export function stateful(sel: string, fn: Function, args: any[], key?: string): Thunk<any> {
   return CreateVNode(sel, {
     key,
     cofn: id,
     hook: {init, prepatch},
-    render: render,
-    view: fn,
+    render: fn,
     args: args
   }, undefined, undefined, undefined) as Thunk<any>;
 }
 
 function runComponent(thunk: Thunk<any>) {
   const cur = thunk.data as VNodeData<any>;
-  let vnode = (cur.render as any)(thunk, cur.args);
+  let vnode = render(thunk, cur.args);
   mutmapVNode(cur.cofn as any, vnode, false);
   return vnode;
 }
