@@ -8,7 +8,8 @@ import {Transition, Batch} from './types';
 import {assign, recordValues} from './utils';
 import {VNode} from './vnode';
 import {currentSignal, makeSignal, Signal} from './signal';
-import {scheduleCallback, PriorityLevel} from './scheduler';
+import {scheduleSyncCallback} from './sync-schedule';
+import {scheduleCallback, PriorityLevel, cancelCallback, Task} from './scheduler';
 
 export interface App<F, G, S, A> {
   render: (model: S) => VNode<A>;
@@ -74,18 +75,22 @@ export function makeAppQueue<M, Q, S, I>(
     const opts: Partial<MakeAppOptions> = options || {};
     const patch = initRender(emit, opts.modules || []);
     let ourSignal = makeSignal({});
+    let renderTask: Task | null = null;
+
     ourSignal.subscribe(pushForce);
 
     function pushAction(a: I) {
       return self.push({ tag: AppActionType.ACTION, payload: a });
     }
 
-    function pushEffect(ef: M) {
-      return self.push({ tag: AppActionType.INTERPRET, payload: left(ef) });
+    function pushEffect(eff: M) {
+      scheduleSyncCallback(() => {
+        self.push({ tag: AppActionType.INTERPRET, payload: left(eff) });
+      });
     }
 
     function pushForce() {
-      scheduleCallback(PriorityLevel.NormalPriority, () => {
+      scheduleSyncCallback(() => {
         self.push({ tag: AppActionType.FORCERENDER });
         self.run();
       });
@@ -121,10 +126,8 @@ export function makeAppQueue<M, Q, S, I>(
         status = nextStatus(state.model, next.model, state.status);
         nextState = {...state, model: next.model, status}
         appChange = {old: state.model, action: action.payload, model: nextState.model};
-        scheduleCallback(PriorityLevel.NormalPriority, () => {
-          onChange(appChange);
-          forInFn(next.effects, pushEffect);
-        });
+        onChange(appChange);
+        forInFn(next.effects, pushEffect);
         return nextState;
 
       case AppActionType.RESTORE:
@@ -140,6 +143,7 @@ export function makeAppQueue<M, Q, S, I>(
         currentSignal.current = ourSignal;
         vdom = patch(state.vdom, app.render(state.model));
         currentSignal.current = prevSignal;
+        renderTask = null;
         return {...state, vdom, status: RenderStatus.FLUSHED};
       }
     }
@@ -149,9 +153,10 @@ export function makeAppQueue<M, Q, S, I>(
         return {...state, status: RenderStatus.NOCHANGE};
       }
       if (state.status === RenderStatus.PENDING) {
-        scheduleCallback(PriorityLevel.NormalPriority, () => {
-          pushRender();
-        });
+        if (renderTask != null) {
+          cancelCallback(renderTask);
+        }
+        renderTask = scheduleCallback(PriorityLevel.NormalPriority, pushRender);
       }
 
       const tickInterpret = runSubs(state.interpret, app.subs(state.model));
@@ -159,7 +164,7 @@ export function makeAppQueue<M, Q, S, I>(
     }
 
     function emit(a: I) {
-      scheduleCallback(PriorityLevel.UserBlockingPriority, () => {
+      scheduleSyncCallback(() => {
         pushAction(a);
         self.run();
       });
@@ -171,9 +176,7 @@ export function makeAppQueue<M, Q, S, I>(
     currentSignal.current = prevSignal;
 
     const it2  = interpreter(assign({}, self, {push: (e: I) => self.push({tag: AppActionType.ACTION, payload: e})}));
-    scheduleCallback(PriorityLevel.NormalPriority, () => {
-      forInFn(app.init.effects, pushEffect);
-    });
+    forInFn(app.init.effects, pushEffect);
     let st: AppState<M, Q, S, I> = {
       vdom,
       status: RenderStatus.NOCHANGE,
@@ -199,11 +202,13 @@ export function make<M, Q, S, I>(
   let state: S = app.init.model;
 
   function handleChange(ac: AppChange<S, I>): void {
-    state = ac.model;
-    let fns = recordValues(subs.cbs);
-    for (let i = 0, len = fns.length; i < len; i++) {
-      fns[i](ac);
-    }
+    scheduleCallback(PriorityLevel.NormalPriority, () => {
+      state = ac.model;
+      let fns = recordValues(subs.cbs);
+      for (let i = 0, len = fns.length; i < len; i++) {
+        fns[i](ac);
+      }
+    });
   }
 
   function subscribe(cb: (_: AppChange<S, I>) => void): () => void {
@@ -218,12 +223,26 @@ export function make<M, Q, S, I>(
 
   let queue = fix(makeAppQueue(handleChange, interpreter, app, el, options));
 
+  function push(i: I) {
+    scheduleSyncCallback(() => {
+      queue.push({tag: AppActionType.ACTION, payload: i });
+    });
+  }
+
+  function run() {
+    scheduleSyncCallback(queue.run);
+  }
+
   return {
     subscribe,
-    push: (i: I) => queue.push({tag: AppActionType.ACTION, payload: i }),
+    push,
+    run,
     snapshot: () => state,
-    restore: (s: S) => queue.push({tag: AppActionType.RESTORE, payload: s}),
-    run: queue.run,
+    restore: (s: S) => {
+      scheduleSyncCallback(() => {
+        queue.push({tag: AppActionType.RESTORE, payload: s})
+      });
+    },
   }
 }
 

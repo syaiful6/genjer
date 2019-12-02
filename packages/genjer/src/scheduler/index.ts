@@ -348,4 +348,4 @@ export function shouldYield() {
   );
 }
 
-export { requestPaint, forceFrameRate };
+export { requestPaint, forceFrameRate, getCurrentTime };

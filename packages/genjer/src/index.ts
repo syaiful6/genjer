@@ -11,3 +11,6 @@ export { useState, useEffect, useReducer } from './hooks';
 export * from './event';
 export * from './interpreter';
 export {currentSignal, CurrentSignal} from './signal';
+export { scheduleSyncCallback } from './sync-schedule';
+import * as scheduler from './scheduler';
+export { scheduler };
