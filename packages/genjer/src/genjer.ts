@@ -5,7 +5,7 @@ import {mergeInterpreter, interpretNever} from './interpreter'
 import {initRender} from './snabbdom';
 import {purely} from './transition'
 import {Transition, Batch} from './types';
-import {assign, recordValues} from './utils';
+import {recordValues} from './utils';
 import {VNode} from './vnode';
 import {currentSignal, makeSignal, Signal} from './signal';
 import {scheduleSyncCallback} from './sync-schedule';
@@ -84,8 +84,12 @@ export function makeAppQueue<M, Q, S, I>(
     }
 
     function pushEffect(eff: M) {
-      scheduleSyncCallback(() => {
-        self.push({ tag: AppActionType.INTERPRET, payload: left(eff) });
+      self.push({ tag: AppActionType.INTERPRET, payload: left(eff) });
+    }
+
+    function pushEffects(effs: M[]) {
+      scheduleCallback(PriorityLevel.NormalPriority, () => {
+        forInFn(effs, pushEffect);
       });
     }
 
@@ -117,9 +121,7 @@ export function makeAppQueue<M, Q, S, I>(
         prevSignal: Signal<any> | null;
       switch(action.tag) {
       case AppActionType.INTERPRET:
-        return assign({}, state, {
-          interpret: state.interpret.loop(action.payload)
-        });
+        return {...state, interpret: state.interpret.loop(action.payload)}
 
       case AppActionType.ACTION:
         next = app.update(state.model, action.payload);
@@ -127,7 +129,7 @@ export function makeAppQueue<M, Q, S, I>(
         nextState = {...state, model: next.model, status}
         appChange = {old: state.model, action: action.payload, model: nextState.model};
         onChange(appChange);
-        forInFn(next.effects, pushEffect);
+        pushEffects(next.effects);
         return nextState;
 
       case AppActionType.RESTORE:
@@ -156,7 +158,7 @@ export function makeAppQueue<M, Q, S, I>(
         if (renderTask != null) {
           cancelCallback(renderTask);
         }
-        renderTask = scheduleCallback(PriorityLevel.NormalPriority, pushRender);
+        renderTask = scheduleCallback(PriorityLevel.ImmediatePriority, pushRender);
       }
 
       const tickInterpret = runSubs(state.interpret, app.subs(state.model));
@@ -175,8 +177,9 @@ export function makeAppQueue<M, Q, S, I>(
     const vdom = patch(el, app.render(app.init.model));
     currentSignal.current = prevSignal;
 
-    const it2  = interpreter(assign({}, self, {push: (e: I) => self.push({tag: AppActionType.ACTION, payload: e})}));
-    forInFn(app.init.effects, pushEffect);
+    const it2 = interpreter({...self, push: pushAction});
+    pushEffects(app.init.effects);
+
     let st: AppState<M, Q, S, I> = {
       vdom,
       status: RenderStatus.NOCHANGE,

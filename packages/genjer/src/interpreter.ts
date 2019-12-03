@@ -21,6 +21,52 @@ export function mergeInterpreter<F, G, I>(lhs: EventQueue<F, I>, rhs: EventQueue
   };
 }
 
+export type RowInterpreter<I> = {
+  [name: string]: EventQueue<any, I>;
+}
+
+type RowLoop<I> = {
+   [name: string]: Loop<I>;
+}
+
+/**
+ * Take a records of interpreters and returns EventQueue
+ */
+export function rowInterpreter<I, T extends RowInterpreter<I>>(interpreter: T): EventQueue<{tag: keyof T; value: any}, I> {
+  return (queue) => {
+
+    function tick(loops: RowLoop<any>) {
+      return {loop: update(loops), tick: commit(loops)};
+    }
+
+    function update(loops: RowLoop<any>) {
+      return (input: {tag: keyof T; value: any}) => {
+        let result: RowLoop<any> = {...loops, [input.tag]: (loops as any)[input.tag](input.value)};
+
+        return tick(result);
+      }
+    }
+
+    function commit(loops: RowLoop<any>) {
+      return () => {
+        let result: RowLoop<any> = {};
+        Object.keys(loops).forEach(key => {
+          result[key] = loops[key].tick();
+        });
+
+        return tick(result);
+      };
+    }
+
+    let result: RowLoop<any> = {};
+    Object.keys(interpreter).forEach(key => {
+      result[key] = interpreter[key](queue);
+    });
+
+    return tick(result);
+  };
+}
+
 export function interpretNever<A>(): EventQueue<never, A> {
   return stepper(() => { throw new Error('never interpreter received input') });
 }
