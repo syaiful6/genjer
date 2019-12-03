@@ -1,18 +1,25 @@
 import {Module} from 'snabbdom/modules/module';
+import {VNode} from 'snabbdom/vnode';
+import {init as initRender} from 'snabbdom'
 import { Either, left, right } from '@jonggrang/prelude';
 import {Loop, EventQueue, withAccum, fix} from './event-queue';
 import {mergeInterpreter, interpretNever} from './interpreter'
-import {initRender} from './snabbdom';
 import {purely} from './transition'
 import {Transition, Batch} from './types';
 import {recordValues} from './utils';
-import {VNode} from './vnode';
 import {currentSignal, makeSignal, Signal} from './signal';
 import {scheduleSyncCallback} from './sync-schedule';
 import {scheduleCallback, PriorityLevel, cancelCallback, Task} from './scheduler';
 
+/**
+ * Dispatch send an action to application reducer.
+ */
+export interface Dispatch<A> {
+  (a: A): void;
+}
+
 export interface App<F, G, S, A> {
-  render: (model: S) => VNode<A>;
+  render: (dispatch: Dispatch<A>, model: S) => VNode;
   update: (model: S, action: A) => Transition<F, S, A>;
   subs: (model: S) => Batch<G, A>;
   init: Transition<F, S, A>;
@@ -57,7 +64,7 @@ type AppState<M, Q, S, I> = {
   model: S;
   interpret: Loop<Either<M, Q>>;
   status: RenderStatus;
-  vdom: VNode<I>;
+  vdom: VNode;
 };
 
 export type MakeAppOptions = {
@@ -73,7 +80,7 @@ export function makeAppQueue<M, Q, S, I>(
 ): EventQueue<AppAction<M, Q, S, I>, AppAction<M, Q, S, I>> {
   return withAccum(self => {
     const opts: Partial<MakeAppOptions> = options || {};
-    const patch = initRender(emit, opts.modules || []);
+    const patch = initRender(opts.modules || []);
     let ourSignal = makeSignal({});
     let renderTask: Task | null = null;
 
@@ -115,7 +122,7 @@ export function makeAppQueue<M, Q, S, I>(
     function update(state: AppState<M, Q, S, I>, action: AppAction<M, Q, S, I>): AppState<M, Q, S, I> {
       let next: Transition<M, S, I>,
         status: RenderStatus,
-        vdom: VNode<I>,
+        vdom: VNode,
         nextState: AppState<M, Q, S, I>,
         appChange: AppChange<S, I>,
         prevSignal: Signal<any> | null;
@@ -143,7 +150,7 @@ export function makeAppQueue<M, Q, S, I>(
         // during render use switch current signal
         prevSignal = currentSignal.current;
         currentSignal.current = ourSignal;
-        vdom = patch(state.vdom, app.render(state.model));
+        vdom = patch(state.vdom, app.render(emit, state.model));
         currentSignal.current = prevSignal;
         renderTask = null;
         return {...state, vdom, status: RenderStatus.FLUSHED};
@@ -174,7 +181,7 @@ export function makeAppQueue<M, Q, S, I>(
 
     const prevSignal = currentSignal.current;
     currentSignal.current = ourSignal;
-    const vdom = patch(el, app.render(app.init.model));
+    const vdom = patch(el, app.render(emit, app.init.model));
     currentSignal.current = prevSignal;
 
     const it2 = interpreter({...self, push: pushAction});
@@ -261,7 +268,7 @@ function nextStatus<S>(prev: S, next: S, status: RenderStatus): RenderStatus {
 }
 
 export type PureApp<S, A> = {
-  render: (model: S) => VNode<A>;
+  render: (dispatch: Dispatch<A>, model: S) => VNode;
   update: (model: S, action: A) => S;
   init: S;
 }

@@ -1,5 +1,4 @@
-import {VNode, Thunk, VNodeData, mutmapVNode} from './vnode';
-import {vnode as CreateVNode} from 'snabbdom/vnode';
+import {VNode, VNodeData, vnode as CreateVNode, Key} from 'snabbdom/vnode';
 import {currentSignal} from './signal';
 import {id} from './utils';
 import {scheduleCallback, PriorityLevel} from './scheduler';
@@ -126,8 +125,8 @@ export function useEffect(fn: EffectFn, deps: any[]) {
   }
 }
 
-function init(thunk: VNode<any>) {
-  (thunk as any).state = {
+function init(thunk: VNode) {
+  (thunk as any).data.state = {
     setup: false,
     states: [],
     statesIndex: 0,
@@ -136,17 +135,17 @@ function init(thunk: VNode<any>) {
     updates: [],
     cleanups: new Map()
   };
-  let vnode = runComponent(thunk as Thunk<any>);
+  let vnode = runComponent(thunk);
   copyToComponent(vnode, thunk);
 }
 
-function update(_: VNode<any>, vnode: VNode<any>) {
+function update(_: VNode, vnode: VNode) {
   const prevState = currentState;
-  currentState = (vnode as any).state;
+  currentState = (vnode as any).data.state;
   try {
-    (vnode as any).state.updates.forEach(call);
+    (vnode as any).data.state.updates.forEach(call);
   } finally {
-    Object.assign((vnode as any).state, {
+    Object.assign((vnode as any).data.state, {
       setup: true,
       updates: [],
       depsIndex: 0,
@@ -156,10 +155,10 @@ function update(_: VNode<any>, vnode: VNode<any>) {
   }
 }
 
-function destroy(vnode: VNode<any>) {
+function destroy(vnode: VNode) {
   const prevState = currentState;
-  currentState = (vnode as any).state;
-  const xs = Array.from((vnode as any).state.cleanups.values());
+  currentState = (vnode as any).data.state;
+  const xs = Array.from((vnode as any).data.state.cleanups.values());
   try {
     xs.forEach(call);
   } finally {
@@ -167,56 +166,54 @@ function destroy(vnode: VNode<any>) {
   }
 }
 
-export function prepatch(oldVnode: VNode<any>, thunk: VNode<any>) {
-  let old = oldVnode.data as VNodeData<any>, cur = thunk.data as VNodeData<any>;
+export function prepatch(oldVnode: VNode, thunk: VNode) {
+  let old = oldVnode.data as VNodeData, cur = thunk.data as VNodeData;
   if (old.render === cur.render) {
-    (thunk as any).state = (oldVnode as any).state
+    (thunk as any).data.state = (oldVnode as any).data.state
     update(oldVnode, thunk);
-    copyToComponent(runComponent(thunk as Thunk<any>), thunk);
+    copyToComponent(runComponent(thunk), thunk);
     return;
   }
   destroy(oldVnode);
   init(thunk);
 }
 
-function render(vnode: VNode<any>, args: any[] = []) {
+function render(vnode: VNode, args: any[] = []) {
   const prevState = currentState;
-  currentState = (vnode as any).state;
-  const cur = vnode.data as VNodeData<any>;
+  currentState = (vnode as any).data.state;
+  const cur = vnode.data as VNodeData;
   try {
-    return (cur.render as any).apply(undefined, args);
+    return (cur.fn as any).apply(undefined, [cur.emit].concat(args));
   } finally {
     currentState = prevState;
   }
 }
 
-export function stateful(sel: string, fn: Function, args: any[], key?: string): Thunk<any> {
+export function stateful(sel: string, fn: Function, emit: Function, args: any[], key?: Key): VNode {
   return CreateVNode(sel, {
     key,
-    cofn: id,
     hook: {init, prepatch},
-    render: fn,
+    fn: fn,
+    emit: emit,
     args: args
-  }, undefined, undefined, undefined) as Thunk<any>;
+  }, undefined, undefined, undefined);
 }
 
-function runComponent(thunk: Thunk<any>) {
-  const cur = thunk.data as VNodeData<any>;
+function runComponent(thunk: VNode) {
+  const cur = thunk.data as VNodeData;
   let vnode = render(thunk, cur.args);
-  mutmapVNode(cur.cofn as any, vnode, false);
   return vnode;
 }
 
-export function copyToComponent(vnode: VNode<any>, thunk: VNode<any>): void {
+export function copyToComponent(vnode: VNode, thunk: VNode): void {
   thunk.elm = vnode.elm;
-  (vnode.data as VNodeData<any>).hook = {
+  (vnode.data as VNodeData).hook = {
     ...(vnode.data && vnode.data.hook ? vnode.data.hook : {}),
     destroy: destroy
   };
-  (vnode.data as VNodeData<any>).view = (thunk.data as VNodeData<any>).view;
-  (vnode.data as VNodeData<any>).render = (thunk.data as VNodeData<any>).render;
-  (vnode.data as VNodeData<any>).args = (thunk.data as VNodeData<any>).args;
-  (vnode.data as VNodeData<any>).cofn = (thunk.data as VNodeData<any>).cofn;
+  (vnode.data as VNodeData).render = (thunk.data as VNodeData).render;
+  (vnode.data as VNodeData).args = (thunk.data as VNodeData).args;
+  (vnode.data as VNodeData).emit = (thunk.data as VNodeData).emit;
   thunk.data = vnode.data;
   thunk.children = vnode.children;
   thunk.text = vnode.text;
