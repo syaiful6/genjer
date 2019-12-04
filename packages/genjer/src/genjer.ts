@@ -100,12 +100,6 @@ export function makeAppQueue<M, Q, S, I>(
       self.push({ tag: AppActionType.INTERPRET, payload: left(eff) });
     }
 
-    function pushEffects(effs: M[]) {
-      scheduleCallback(PriorityLevel.NormalPriority, () => {
-        forInFn(effs, pushEffect);
-      });
-    }
-
     function pushForce() {
       self.push({ tag: AppActionType.FORCERENDER });
       if ((executionContext & ExecutionContext.Run) !== ExecutionContext.Run) {
@@ -146,7 +140,7 @@ export function makeAppQueue<M, Q, S, I>(
         nextState = {...state, model: next.model, status}
         appChange = {old: state.model, action: action.payload, model: nextState.model};
         onChange(appChange);
-        pushEffects(next.effects);
+        forInFn(next.effects, pushEffect);
         return nextState;
 
       case AppActionType.RESTORE:
@@ -162,13 +156,17 @@ export function makeAppQueue<M, Q, S, I>(
         currentSignal.current = ourSignal;
         vdom = patch(state.vdom, app.render(emit, state.model));
         currentSignal.current = prevSignal;
-        executionContext ^= ExecutionContext.Render;
+        if ((executionContext & ExecutionContext.Render) === ExecutionContext.Render) {
+          executionContext ^= ExecutionContext.Render;
+        }
         return {...state, vdom, status: RenderStatus.FLUSHED};
       }
     }
 
     function commit(state: AppState<M, Q, S, I>): AppState<M, Q, S, I> {
-      executionContext ^= ExecutionContext.Run;
+      if ((executionContext & ExecutionContext.Run) === ExecutionContext.Run) {
+        executionContext ^= ExecutionContext.Run;
+      }
       if (state.status === RenderStatus.FLUSHED) {
         return {...state, status: RenderStatus.NOCHANGE};
       }
@@ -186,7 +184,7 @@ export function makeAppQueue<M, Q, S, I>(
     function emit(a: I) {
       pushAction(a);
       if ((executionContext & ExecutionContext.Run) !== ExecutionContext.Run) {
-        scheduleCallback(PriorityLevel.NormalPriority, self.run);
+        scheduleCallback(PriorityLevel.UserBlockingPriority, self.run);
         executionContext |= ExecutionContext.Run;
       }
     }
@@ -197,7 +195,7 @@ export function makeAppQueue<M, Q, S, I>(
     currentSignal.current = prevSignal;
 
     const it2 = interpreter({...self, push: pushAction});
-    pushEffects(app.init.effects);
+    forInFn(app.init.effects, pushEffect);
 
     let st: AppState<M, Q, S, I> = {
       vdom,
@@ -246,9 +244,7 @@ export function make<M, Q, S, I>(
   let queue = fix(makeAppQueue(handleChange, interpreter, app, el, options));
 
   function push(i: I) {
-    scheduleSyncCallback(() => {
-      queue.push({tag: AppActionType.ACTION, payload: i });
-    });
+    queue.push({tag: AppActionType.ACTION, payload: i });
   }
 
   function run() {
@@ -261,9 +257,7 @@ export function make<M, Q, S, I>(
     run,
     snapshot: () => state,
     restore: (s: S) => {
-      scheduleSyncCallback(() => {
-        queue.push({tag: AppActionType.RESTORE, payload: s})
-      });
+      queue.push({tag: AppActionType.RESTORE, payload: s});
     },
   }
 }
