@@ -183,7 +183,7 @@ function render(vnode: VNode, args: any[] = []) {
   currentState = (vnode as any).data.state;
   const cur = vnode.data as VNodeData;
   try {
-    return (cur.fn as any).apply(undefined, [cur.emit].concat(args));
+    return (cur.fn as any)(cur.emit, ...args);
   } finally {
     currentState = prevState;
   }
@@ -211,7 +211,7 @@ export function copyToComponent(vnode: VNode, thunk: VNode): void {
     ...(vnode.data && vnode.data.hook ? vnode.data.hook : {}),
     destroy: destroy
   };
-  (vnode.data as VNodeData).render = (thunk.data as VNodeData).render;
+  (vnode.data as VNodeData).fn = (thunk.data as VNodeData).fn;
   (vnode.data as VNodeData).args = (thunk.data as VNodeData).args;
   (vnode.data as VNodeData).emit = (thunk.data as VNodeData).emit;
   thunk.data = vnode.data;

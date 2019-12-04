@@ -23,7 +23,7 @@ function copyToThunk(vnode: VNode, thunk: VNode): void {
 
 function init(thunk: VNode): void {
   const cur = thunk.data as VNodeData;
-  const vnode = (cur.fn as any).apply(undefined, [cur.emit].concat(cur.args));
+  const vnode = (cur.fn as any)(cur.emit, ...cur.args as any[]);
   copyToThunk(vnode, thunk);
 }
 
@@ -31,12 +31,12 @@ function prepatch(oldVnode: VNode, thunk: VNode): void {
   let i: number, old = oldVnode.data as VNodeData, cur = thunk.data as VNodeData;
   const oldArgs = old.args, args = cur.args;
   if (old.fn !== cur.fn || (oldArgs as any).length !== (args as any).length) {
-    copyToThunk((cur.fn as any).apply(undefined, [cur.emit].concat(args)), thunk);
+    copyToThunk((cur.fn as any)(cur.emit, ...args as any[]), thunk);
     return;
   }
   for (i = 0; i < (args as any).length; ++i) {
     if ((oldArgs as any)[i] !== (args as any)[i]) {
-      copyToThunk((cur.fn as any).apply(undefined, [cur.emit].concat(args)), thunk);
+      copyToThunk((cur.fn as any)(cur.emit, ...args as any[]), thunk);
       return;
     }
   }
