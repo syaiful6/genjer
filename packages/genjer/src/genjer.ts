@@ -9,7 +9,7 @@ import {Transition, Batch} from './types';
 import {recordValues} from './utils';
 import {currentSignal, makeSignal, Signal} from './signal';
 import {scheduleSyncCallback} from './sync-schedule';
-import {scheduleCallback, PriorityLevel, cancelCallback, Task} from './scheduler';
+import {scheduleCallback, PriorityLevel} from './scheduler';
 
 /**
  * Dispatch send an action to application reducer.
@@ -71,6 +71,12 @@ export type MakeAppOptions = {
   modules: Partial<Module>[];
 }
 
+const enum ExecutionContext {
+  NoWork = 0b00000000,
+  Run    = 0b00000001,
+  Render = 0b00000010
+}
+
 export function makeAppQueue<M, Q, S, I>(
   onChange: (c: AppChange<S, I>) => void,
   interpreter: EventQueue<Either<M, Q>, I>,
@@ -82,7 +88,7 @@ export function makeAppQueue<M, Q, S, I>(
     const opts: Partial<MakeAppOptions> = options || {};
     const patch = initRender(opts.modules || []);
     let ourSignal = makeSignal({});
-    let renderTask: Task | null = null;
+    let executionContext: number = ExecutionContext.NoWork;
 
     ourSignal.subscribe(pushForce);
 
@@ -101,10 +107,11 @@ export function makeAppQueue<M, Q, S, I>(
     }
 
     function pushForce() {
-      scheduleSyncCallback(() => {
-        self.push({ tag: AppActionType.FORCERENDER });
-        self.run();
-      });
+      self.push({ tag: AppActionType.FORCERENDER });
+      if ((executionContext & ExecutionContext.Run) !== ExecutionContext.Run) {
+        scheduleCallback(PriorityLevel.NormalPriority, self.run);
+        executionContext |= ExecutionContext.Run;
+      }
     }
 
     function runSubs(lo: Loop<Either<M, Q>>, subs: Q[]) {
@@ -116,7 +123,10 @@ export function makeAppQueue<M, Q, S, I>(
 
     function pushRender() {
       self.push({ tag: AppActionType.RENDER });
-      self.run();
+      if ((executionContext & ExecutionContext.Run) !== ExecutionContext.Run) {
+        scheduleCallback(PriorityLevel.NormalPriority, self.run);
+        executionContext |= ExecutionContext.Run;
+      }
     }
 
     function update(state: AppState<M, Q, S, I>, action: AppAction<M, Q, S, I>): AppState<M, Q, S, I> {
@@ -152,20 +162,21 @@ export function makeAppQueue<M, Q, S, I>(
         currentSignal.current = ourSignal;
         vdom = patch(state.vdom, app.render(emit, state.model));
         currentSignal.current = prevSignal;
-        renderTask = null;
+        executionContext ^= ExecutionContext.Render;
         return {...state, vdom, status: RenderStatus.FLUSHED};
       }
     }
 
     function commit(state: AppState<M, Q, S, I>): AppState<M, Q, S, I> {
+      executionContext ^= ExecutionContext.Run;
       if (state.status === RenderStatus.FLUSHED) {
         return {...state, status: RenderStatus.NOCHANGE};
       }
       if (state.status === RenderStatus.PENDING) {
-        if (renderTask != null) {
-          cancelCallback(renderTask);
+        if ((executionContext & ExecutionContext.Render) !== ExecutionContext.Render) {
+          scheduleCallback(PriorityLevel.ImmediatePriority, pushRender);
+          executionContext |= ExecutionContext.Render;
         }
-        renderTask = scheduleCallback(PriorityLevel.ImmediatePriority, pushRender);
       }
 
       const tickInterpret = runSubs(state.interpret, app.subs(state.model));
@@ -173,10 +184,11 @@ export function makeAppQueue<M, Q, S, I>(
     }
 
     function emit(a: I) {
-      scheduleSyncCallback(() => {
-        pushAction(a);
-        self.run();
-      });
+      pushAction(a);
+      if ((executionContext & ExecutionContext.Run) !== ExecutionContext.Run) {
+        scheduleCallback(PriorityLevel.NormalPriority, self.run);
+        executionContext |= ExecutionContext.Run;
+      }
     }
 
     const prevSignal = currentSignal.current;
