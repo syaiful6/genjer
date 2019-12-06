@@ -1,0 +1,5 @@
+src
+test
+*.lock
+rollup.config.js
+tsconfig.json
