@@ -87,7 +87,7 @@ export function makeAppQueue<M, Q, S, I>(
   return withAccum(self => {
     const opts: Partial<MakeAppOptions> = options || {};
     const patch = initRender(opts.modules || []);
-    let ourSignal = makeSignal({});
+    let ourSignal = makeSignal();
     let executionContext: number = ExecutionContext.NoWork;
 
     ourSignal.subscribe(pushForce);
@@ -118,7 +118,7 @@ export function makeAppQueue<M, Q, S, I>(
     function pushRender() {
       self.push({ tag: AppActionType.RENDER });
       if ((executionContext & ExecutionContext.Run) !== ExecutionContext.Run) {
-        scheduleCallback(PriorityLevel.NormalPriority, self.run);
+        scheduleCallback(PriorityLevel.ImmediatePriority, self.run);
         executionContext |= ExecutionContext.Run;
       }
     }
@@ -129,7 +129,7 @@ export function makeAppQueue<M, Q, S, I>(
         vdom: VNode,
         nextState: AppState<M, Q, S, I>,
         appChange: AppChange<S, I>,
-        prevSignal: Signal<any> | null;
+        prevSignal: Signal | null;
       switch(action.tag) {
       case AppActionType.INTERPRET:
         return {...state, interpret: state.interpret.loop(action.payload)}

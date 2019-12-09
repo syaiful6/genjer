@@ -1,24 +1,24 @@
+import {scheduleSyncCallback} from './sync-schedule';
+
 /**
  *
  */
-export interface Signal<A> {
-  subscribe: (f: (_: A) => void) => () => void;
-  push: (_: A) => void;
-  snapshot: () => A;
+export interface Signal {
+  subscribe: (f: () => void) => () => void;
+  emit: () => void;
 }
 
 export type CurrentSignal = {
-  current: Signal<any> | null;
+  current: Signal | null;
 }
 
 export const currentSignal: CurrentSignal = {
   current: null
 }
 
-export function makeSignal<A>(initial: A): Signal<A> {
+export function makeSignal(): Signal {
   let fresh: number = 0;
-  let cbs: Record<string, (_: A) => void> = {};
-  let val = initial;
+  let cbs: Record<string, () => void> = {};
   return {
     subscribe: (cb) => {
       let key = fresh.toString();
@@ -28,12 +28,12 @@ export function makeSignal<A>(initial: A): Signal<A> {
         delete cbs[key];
       }
     },
-    push: (a: A) => {
-      val = a;
-      Object.keys(cbs).forEach(key => {
-        if (typeof cbs[key] === 'function') cbs[key](a)
-      })
+    emit: () => {
+      scheduleSyncCallback(() => {
+        Object.keys(cbs).forEach(key => {
+          if (typeof cbs[key] === 'function') cbs[key]()
+        });
+      });
     },
-    snapshot: () => val
   };
 }

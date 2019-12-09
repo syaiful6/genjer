@@ -52,7 +52,7 @@ export interface SetStateFn<S> {
   (_: (_: S) => S): void;
 }
 
-function updateState<S = any>(initialValue: S, newValueFn: UpdateFn = id): [S, SetStateFn<S>, number]  {
+function updateState<S = any>(initialValue?: S, newValueFn: UpdateFn = id): [S, SetStateFn<S>, number]  {
   const state = currentState;
   const index = state.statesIndex++;
   if (!state.setup) {
@@ -66,7 +66,7 @@ function updateState<S = any>(initialValue: S, newValueFn: UpdateFn = id): [S, S
       const newValue = newValueFn(value, index);
       state.states[index] = newValue;
       if (newValue !== previousValue) {
-        signal.push({}); // rerender
+        signal.emit(); // rerender
       }
     },
     index
@@ -106,7 +106,7 @@ export function useEffect(fn: EffectFn, deps: any[]) {
         // Store this this function to be called at cleanup and unmount
         state.cleanups.set(depsIndex, teardown);
         // At unmount, call re-render at least once
-        state.cleanups.set("_", () => signal.push({}));
+        state.cleanups.set("_", signal.emit);
       }
     };
 
@@ -123,6 +123,22 @@ export function useEffect(fn: EffectFn, deps: any[]) {
 
     state.updates.push(() => scheduleCallback(PriorityLevel.LowPriority, runCallbackFn));
   }
+}
+
+export function useMemo<T>(fn: () => T, deps: any[]): T {
+  const state = currentState;
+  const shouldRecompute = updateDeps(deps);
+  const [memoized, setMemoized] = !state.setup ? updateState(fn()) : updateState<T>();
+  if (state.setup && shouldRecompute) {
+    setMemoized(fn());
+  }
+  return memoized;
+}
+
+export function useCallback<
+  ResultFn extends (this: any, ...newArgs: any[]) => ReturnType<ResultFn>
+>(resultFn: ResultFn, deps: any[]): ResultFn {
+  return useMemo(() => resultFn, deps);
 }
 
 function init(thunk: VNode) {
@@ -158,7 +174,7 @@ function update(_: VNode, vnode: VNode) {
 function destroy(vnode: VNode) {
   const prevState = currentState;
   currentState = (vnode as any).data.state;
-  const xs = Array.from((vnode as any).data.state.cleanups.values());
+  const xs = (vnode as any).data.state.cleanups as Map<string, () => void>;
   try {
     xs.forEach(call);
   } finally {
@@ -168,7 +184,7 @@ function destroy(vnode: VNode) {
 
 export function prepatch(oldVnode: VNode, thunk: VNode) {
   let old = oldVnode.data as VNodeData, cur = thunk.data as VNodeData;
-  if (old.render === cur.render) {
+  if (old.fn === cur.fn) {
     (thunk as any).data.state = (oldVnode as any).data.state
     update(oldVnode, thunk);
     copyToComponent(runComponent(thunk), thunk);
