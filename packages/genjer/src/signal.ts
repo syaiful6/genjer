@@ -1,5 +1,3 @@
-import {scheduleSyncCallback} from './sync-schedule';
-
 /**
  *
  */
@@ -29,10 +27,8 @@ export function makeSignal(): Signal {
       }
     },
     emit: () => {
-      scheduleSyncCallback(() => {
-        Object.keys(cbs).forEach(key => {
-          if (typeof cbs[key] === 'function') cbs[key]()
-        });
+      Object.keys(cbs).forEach(key => {
+        if (typeof cbs[key] === 'function') cbs[key]()
       });
     },
   };

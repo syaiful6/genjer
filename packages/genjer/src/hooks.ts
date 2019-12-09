@@ -230,6 +230,7 @@ export function copyToComponent(vnode: VNode, thunk: VNode): void {
   (vnode.data as VNodeData).fn = (thunk.data as VNodeData).fn;
   (vnode.data as VNodeData).args = (thunk.data as VNodeData).args;
   (vnode.data as VNodeData).emit = (thunk.data as VNodeData).emit;
+  (vnode.data as VNodeData).state = (thunk.data as VNodeData).state;
   thunk.data = vnode.data;
   thunk.children = vnode.children;
   thunk.text = vnode.text;

@@ -103,7 +103,7 @@ export function makeAppQueue<M, Q, S, I>(
     function pushForce() {
       self.push({ tag: AppActionType.FORCERENDER });
       if ((executionContext & ExecutionContext.Run) !== ExecutionContext.Run) {
-        scheduleCallback(PriorityLevel.NormalPriority, self.run);
+        scheduleCallback(PriorityLevel.ImmediatePriority, self.run);
         executionContext |= ExecutionContext.Run;
       }
     }
@@ -178,6 +178,7 @@ export function makeAppQueue<M, Q, S, I>(
       }
 
       const tickInterpret = runSubs(state.interpret, app.subs(state.model));
+
       return {...state, interpret: tickInterpret, status: RenderStatus.NOCHANGE};
     }
 
