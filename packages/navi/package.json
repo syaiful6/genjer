@@ -1,0 +1,29 @@
+{
+  "name": "@genjer/navi",
+  "version": "0.0.0",
+  "description": "Manage session history and route",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "module": "lib/index.esm.js",
+  "author": "Syaiful Bahri",
+  "license": "MIT",
+  "dependencies": {
+    "history": "4.10.x",
+    "@types/history": "^4.7.3"
+  },
+  "peerDependencies": {
+    "@genjer/genjer": "< 1"
+  },
+  "devDependencies": {
+    "typescript": "^3.7.2",
+    "mocha": "^5.2.0",
+    "@types/mocha": "^5.2.1",
+    "@types/node": "^12.12.7",
+    "rollup": "^1.27.0",
+    "@wessberg/rollup-plugin-ts": "^1.1.83",
+    "@jonggrang/prelude": "^1.0.0",
+    "snabbdom": "^0.7.3"
+  },
+  "scripts": {
+  }
+}
