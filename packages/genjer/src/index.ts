@@ -12,3 +12,4 @@ export {currentSignal, CurrentSignal} from './signal';
 export { scheduleSyncCallback } from './sync-schedule';
 import * as scheduler from './scheduler';
 export { scheduler };
+export {Variant, liftVariant} from './variant';

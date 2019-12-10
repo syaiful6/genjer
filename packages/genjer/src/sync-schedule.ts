@@ -1,7 +1,8 @@
 import {
-  getCurrentTime, scheduleCallback, cancelCallback, runWithPriority,
+  scheduleCallback, cancelCallback, runWithPriority,
   TaskCallback, Task, PriorityLevel
 } from './scheduler';
+import {getCurrentTime} from './scheduler/executors';
 
 let initialTimeMS: number = getCurrentTime();
 let syncQueue: TaskCallback[] | null = null;

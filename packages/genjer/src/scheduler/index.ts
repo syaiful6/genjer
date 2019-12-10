@@ -5,8 +5,6 @@ import {
   cancelHostTimeout,
   shouldYieldToHost,
   getCurrentTime,
-  forceFrameRate,
-  requestPaint,
 } from './executors';
 
 export const enum PriorityLevel {
@@ -347,5 +345,3 @@ export function shouldYield() {
     shouldYieldToHost()
   );
 }
-
-export { requestPaint, forceFrameRate, getCurrentTime };

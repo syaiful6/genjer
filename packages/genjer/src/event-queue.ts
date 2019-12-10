@@ -1,6 +1,6 @@
 export type Loop<I> = {
   loop: (i: I) => Loop<I>;
-  tick: () => Loop<I>;
+  done: () => Loop<I>;
 }
 
 export type EventQueueInstance<O> = {
@@ -18,51 +18,50 @@ export type EventQueueAccum<S, I> = {
 
 export function stepper<I, O>(k: (i: I) => O): EventQueue<I, O> {
   return (next) => {
-    function tick(): Loop<I> {
-      return {loop, tick};
+    function done(): Loop<I> {
+      return {loop, done};
     }
 
     function loop(i: I): Loop<I> {
       next.push(k(i));
       next.run();
-      return {loop, tick};
+      return {loop, done};
     }
 
-    return tick();
+    return done();
   };
 }
 
 export function withCont<I, O>(k: (eo: EventQueueInstance<O>, i: I) => void): EventQueue<I, O> {
   return (next) => {
-    function tick(): Loop<I> {
-      return {loop, tick};
+    function done(): Loop<I> {
+      return {loop, done};
     }
 
     function loop(i: I): Loop<I> {
       k(next, i);
-      return {loop, tick};
+      return {loop, done};
     }
 
-    return tick();
+    return done();
   };
 }
 
 export function withAccum<S, I, O>(specFn: (ei: EventQueueInstance<O>) => EventQueueAccum<S, I>): EventQueue<I, O> {
   return (next) => {
     const spec = specFn(next);
-    function tick(s: S) {
-      return {
-        loop: (i: I) => update(s, i),
-        tick: commit(s)
-      };
+    let state = spec.init;
+    function loop(i: I): Loop<I> {
+      state = spec.update(state, i);
+      return {loop, done};
     }
-    function update(s: S, i: I) {
-      return tick(spec.update(s, i));
+
+    function done() {
+      state = spec.commit(state);
+      return {loop, done};
     }
-    function commit(s: S) {
-      return () => tick(spec.commit(s));
-    }
-    return tick(spec.init);
+
+    return {loop, done};
   };
 }
 
@@ -87,9 +86,7 @@ export function fix<I>(proc: EventQueue<I, I>): EventQueueInstance<I> {
   let machine: Loop<I> | null = null;
 
   function push(i: I): void {
-    let ys = queue.slice();
-    ys.push(i);
-    queue = ys;
+    queue.push(i);
   }
 
   function run(): void {
@@ -101,11 +98,9 @@ export function fix<I>(proc: EventQueue<I, I>): EventQueueInstance<I> {
   function loop(mc: Loop<I>): void {
     while (true) {
       if (queue.length > 0) {
-        let head = queue[0];
-        queue = queue.slice(1);
-        mc = mc.loop(head)
+        mc = mc.loop(queue.shift() as I)
       } else {
-        let st = mc.tick();
+        let st = mc.done();
         if (queue.length === 0) {
           machine = st;
           queue = [];

@@ -1,69 +1,76 @@
 import {Either, isLeft} from '@jonggrang/prelude';
 import {EventQueue, Loop, stepper, withCont} from './event-queue';
+import {Variant} from './variant';
 
 export function mergeInterpreter<F, G, I>(lhs: EventQueue<F, I>, rhs: EventQueue<G, I>): EventQueue<Either<F, G>, I> {
   return (queue) => {
-    function tick(ls: Loop<F>, rs: Loop<G>): Loop<Either<F, G>> {
-      return {loop: update(ls, rs), tick: commit(ls, rs)};
+    let ls = lhs(queue);
+    let rs = rhs(queue);
+
+    function loop(e: Either<F, G>): Loop<Either<F, G>> {
+      if (isLeft(e)) {
+        ls = ls.loop(e.value);
+      } else {
+        rs = rs.loop(e.value);
+      }
+
+      return {loop, done};
     }
 
-    function update(ls: Loop<F>, rs: Loop<G>) {
-      return function (e: Either<F, G>): Loop<Either<F, G>> {
-        return isLeft(e) ? tick(ls.loop(e.value), rs) : tick(ls, rs.loop(e.value));
-      };
+    function done(): Loop<Either<F, G>> {
+      ls = ls.done();
+      rs = rs.done();
+
+      return {loop, done};
     }
 
-    function commit(ls: Loop<F>, rs: Loop<G>): () => Loop<Either<F, G>> {
-      return () => tick(ls.tick(), rs.tick())
-    }
-
-    return tick(lhs(queue), rhs(queue));
+    return {loop, done}
   };
 }
 
-export type RowInterpreter<I> = {
-  [name: string]: EventQueue<any, I>;
+export type RowInterpreter<T = any> = {
+  [P in keyof T]: T[P] & EventQueue<any, any>
 }
 
 type RowLoop<I> = {
    [name: string]: Loop<I>;
 }
 
+type InferLoop<T extends Record<any, EventQueue<any, any>>> = T extends Record<any, EventQueue<infer P, any>> ? P : never;
+type InferEventInstance<T extends EventQueue<any, any>> = T extends EventQueue<any, infer P> ? P : never;
+
 /**
  * Take a records of interpreters and returns EventQueue
  */
-export function rowInterpreter<I, T extends RowInterpreter<I>>(interpreter: T): EventQueue<{tag: keyof T; value: any}, I> {
+export function rowInterpreter<
+  K extends keyof T & string,
+  T extends RowInterpreter
+ >(interpreter: T): EventQueue<Variant<K, InferEventInstance<T[K]>>, InferLoop<T>> {
   return (queue) => {
 
-    function tick(loops: RowLoop<any>) {
-      return {loop: update(loops), tick: commit(loops)};
-    }
-
-    function update(loops: RowLoop<any>) {
-      return (input: {tag: keyof T; value: any}) => {
-        let result: RowLoop<any> = {...loops, [input.tag]: (loops as any)[input.tag](input.value)};
-
-        return tick(result);
-      }
-    }
-
-    function commit(loops: RowLoop<any>) {
-      return () => {
-        let result: RowLoop<any> = {};
-        Object.keys(loops).forEach(key => {
-          result[key] = loops[key].tick();
-        });
-
-        return tick(result);
-      };
-    }
-
-    let result: RowLoop<any> = {};
+    let loops: RowLoop<any> = {};
     Object.keys(interpreter).forEach(key => {
-      result[key] = interpreter[key](queue);
+      loops[key] = (interpreter as any)[key](queue);
     });
 
-    return tick(result);
+    function loop(input: Variant<K, any>): Loop<Variant<K, any>> {
+      loops = {...loops, [input.tag]: (loops as any)[input.tag](input.fa)};
+
+      return {loop, done};
+    }
+
+    function done() {
+      let result: RowLoop<any> = {};
+      Object.keys(loops).forEach(key => {
+        result[key] = loops[key].done();
+      });
+
+      loops = result;
+
+      return {loop, done};
+    }
+
+    return {loop, done};
   };
 }
 
