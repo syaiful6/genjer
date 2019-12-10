@@ -225,7 +225,8 @@ export function copyToComponent(vnode: VNode, thunk: VNode): void {
   thunk.elm = vnode.elm;
   (vnode.data as VNodeData).hook = {
     ...(vnode.data && vnode.data.hook ? vnode.data.hook : {}),
-    destroy: destroy
+    destroy: destroy,
+    create: update,
   };
   (vnode.data as VNodeData).fn = (thunk.data as VNodeData).fn;
   (vnode.data as VNodeData).args = (thunk.data as VNodeData).args;
