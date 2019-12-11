@@ -1,5 +1,5 @@
 import {Location, Action, History, LocationListener} from 'history'
-import {liftVariant, Variant, withAccumArray, EventQueue} from '@genjer/genjer';
+import {withAccumArray, EventQueueInstance} from '@genjer/genjer';
 
 export type HistoryChangeListener<A> = (location: Location, action: Action) => A;
 
@@ -14,12 +14,12 @@ export class HistorySub<A> {
   }
 }
 
-export function onHistoryChange<A>(fn: HistoryChangeListener<A>): Variant<'navi', A> {
-  return liftVariant('navi', new HistorySub(fn));
+export function onHistoryChange<A>(fn: HistoryChangeListener<A>): HistorySub<A> {
+  return new HistorySub(fn);
 }
 
-export function makeHistorySubInterpreter<A = any>(history: History): EventQueue<HistorySub<A>, A> {
-  return withAccumArray(queue => {
+export function makeHistorySubInterpreter(history: History) {
+  function subs<A>(queue: EventQueueInstance<A>) {
     let model: Array<HistorySub<A>>;
     let unsubscribe: (() => void) | null = null;
     // subscribe
@@ -45,5 +45,7 @@ export function makeHistorySubInterpreter<A = any>(history: History): EventQueue
     }
 
     return commit;
-  });
+  };
+
+  return withAccumArray(subs);
 }

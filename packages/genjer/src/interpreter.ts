@@ -36,8 +36,7 @@ type RowLoop<I> = {
    [name: string]: Loop<I>;
 }
 
-type InferLoop<T extends Record<any, EventQueue<any, any>>> = T extends Record<any, EventQueue<infer P, any>> ? P : never;
-type InferEventInstance<T extends EventQueue<any, any>> = T extends EventQueue<any, infer P> ? P : never;
+type InferOut<T extends Record<any, EventQueue<any, any>>> = T extends Record<any, EventQueue<any, infer P>> ? P : never;
 
 /**
  * Take a records of interpreters and returns EventQueue
@@ -45,7 +44,7 @@ type InferEventInstance<T extends EventQueue<any, any>> = T extends EventQueue<a
 export function rowInterpreter<
   K extends keyof T & string,
   T extends RowInterpreter
- >(interpreter: T): EventQueue<Variant<K, InferEventInstance<T[K]>>, InferLoop<T>> {
+ >(interpreter: T): EventQueue<Variant<K, any>, InferOut<T>> {
   return (queue) => {
 
     let loops: RowLoop<any> = {};
