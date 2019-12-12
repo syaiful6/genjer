@@ -1,7 +1,7 @@
 {
-  "name": "@genjer/navi-router",
-  "version": "0.0.0",
+  "name": "@genjer/navi/router",
   "main": "../lib/router.js",
-  "typings": "../lib/router.d.ts",
-  "module": "../lib/router.esm.js"
+  "typings": "../lib/router/index.d.ts",
+  "module": "../lib/router.esm.js",
+  "sideEffects": false
 }
