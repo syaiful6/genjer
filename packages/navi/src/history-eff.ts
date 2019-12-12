@@ -40,6 +40,7 @@ export function makeHistoryNat(history: History) {
 
     case 'forward':
       history.goForward();
+      break;
     }
 
     return eff.val;

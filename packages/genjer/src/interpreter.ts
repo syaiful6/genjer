@@ -44,7 +44,7 @@ type InferOut<T extends Record<any, EventQueue<any, any>>> = T extends Record<an
 export function rowInterpreter<
   K extends keyof T & string,
   T extends RowInterpreter
- >(interpreter: T): EventQueue<Variant<K, any>, InferOut<T>> {
+ >(interpreter: T): EventQueue<Variant<K, InferOut<T>>, InferOut<T>> {
   return (queue) => {
 
     let loops: RowLoop<any> = {};

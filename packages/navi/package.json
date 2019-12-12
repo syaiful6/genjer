@@ -25,5 +25,6 @@
     "snabbdom": "^0.7.3"
   },
   "scripts": {
+    "compile": "rollup -c"
   }
 }

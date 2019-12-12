@@ -1,0 +1,7 @@
+{
+  "name": "@genjer/navi-router",
+  "version": "0.0.0",
+  "main": "../lib/router.js",
+  "typings": "../lib/router.d.ts",
+  "module": "../lib/router.esm.js"
+}
