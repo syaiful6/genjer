@@ -1,6 +1,7 @@
 import resolve from 'rollup-plugin-node-resolve';
 import commonjs from 'rollup-plugin-commonjs';
 import typescript from '@wessberg/rollup-plugin-ts';
+import injectEnv from 'rollup-plugin-inject-process-env';
 
 export default {
   input: 'src/index.ts',
@@ -12,6 +13,9 @@ export default {
   plugins: [
     resolve(),
     commonjs(),
-    typescript()
+    typescript(),
+    injectEnv({
+      NODE_ENV: 'production'
+    }),
   ]
 }

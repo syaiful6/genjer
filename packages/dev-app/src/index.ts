@@ -76,14 +76,14 @@ function subs(): Batch<HistorySub<Action>, Action> {
 }
 
 function main() {
-  const history = makeHashHistoryInterpreters();
-  const interpreter = mergeInterpreter(history[0], history[1]);
+  const [history, historyInterpreters] = makeHashHistoryInterpreters();
+  const interpreter = mergeInterpreter(historyInterpreters[0], historyInterpreters[1]);
   const initialState: State = {
-    page: {id: 'home', params: {}},
+    page: routeMatcher(history.location.pathname),
     users: []
   }
   const appInstance = make(
-    interpreter as any,
+    interpreter,
     {render, update, subs, init: purely(initialState)},
     document.querySelector('.app') as Element,
     {modules: [AttrModule, PropModule, ClassModule, StyleModule, ListenerModule]}

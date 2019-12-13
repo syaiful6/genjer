@@ -1,5 +1,5 @@
 import {Location, Action, History, LocationListener} from 'history'
-import {withAccumArray, EventQueueInstance} from '@genjer/genjer';
+import {withAccumArray, EventQueueInstance, scheduleSyncCallback} from '@genjer/genjer';
 
 export type HistoryChangeListener<A> = (location: Location, action: Action) => A;
 
@@ -20,14 +20,16 @@ export function onHistoryChange<A>(fn: HistoryChangeListener<A>): HistorySub<A> 
 
 export function makeHistorySubInterpreter(history: History) {
   function subs<A>(queue: EventQueueInstance<A>) {
-    let model: Array<HistorySub<A>>;
+    let model: Array<HistorySub<A>> = [];
     let unsubscribe: (() => void) | null = null;
     // subscribe
     let listener: LocationListener = (location, action) => {
-      for (let i = 0, len = model.length; i < len; i++) {
-        queue.push(model[i].fn(location, action));
-      }
-      queue.run();
+      scheduleSyncCallback(() => {
+        for (let i = 0, len = model.length; i < len; i++) {
+          queue.push(model[i].fn(location, action));
+        }
+        queue.run();
+      });
     };
 
     function commit(xs: Array<HistorySub<A>>) {

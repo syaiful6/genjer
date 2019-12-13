@@ -112,7 +112,7 @@ export function makeAppQueue<M, Q, S, I>(
       for (let i = 0, len = subs.length; i < len; i++) {
         lo = lo.loop(right(subs[i]));
       }
-      return lo;
+      return lo.done();
     }
 
     function pushRender() {

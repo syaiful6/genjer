@@ -16,6 +16,7 @@
     "rollup": "^1.27.0",
     "rollup-plugin-commonjs": "^10.1.0",
     "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-inject-process-env": "^1.1.0",
     "serve": "^11.2.0",
     "@wessberg/rollup-plugin-ts": "^1.1.83"
   },
@@ -23,6 +24,6 @@
     "compile": "rollup -c",
     "watch": "rollup -c -w",
     "dev": "npm-run-all --parallel start watch",
-    "start": "serve public"
+    "start": "serve"
   }
 }

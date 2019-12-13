@@ -20,30 +20,30 @@ export type HistoryInterpreterPair = [
  * - the second item is interpreter for subs
  * @param history
  */
-export function makeHistoryInterpreters(history: History): HistoryInterpreterPair {
+export function makeHistoryInterpreters(history: History): [History, HistoryInterpreterPair] {
   const eff = stepper(makeHistoryNat(history));
   const subs = makeHistorySubInterpreter(history);
 
-  return [eff, subs];
+  return [history, [eff, subs]];
 }
 
 /**
  * Same as `makeHistoryInterpreters` but use browser history as History implementation
  */
-export function makeBrowserHistoryInterpreters(opts?: BrowserHistoryBuildOptions): HistoryInterpreterPair {
+export function makeBrowserHistoryInterpreters(opts?: BrowserHistoryBuildOptions): [History, HistoryInterpreterPair] {
   return makeHistoryInterpreters(createBrowserHistory(opts));
 }
 
 /**
  * Same as `makeHistoryInterpreters` but use hash history as History implementation
  */
-export function makeHashHistoryInterpreters(opts?: HashHistoryBuildOptions): HistoryInterpreterPair {
+export function makeHashHistoryInterpreters(opts?: HashHistoryBuildOptions): [History, HistoryInterpreterPair] {
   return makeHistoryInterpreters(createHashHistory(opts));
 }
 
 /**
  * Same as `makeHistoryInterpreters` but use memory history as History implementation
  */
-export function makeMemoryHistoryInterpreters(opts?: MemoryHistoryBuildOptions): HistoryInterpreterPair {
+export function makeMemoryHistoryInterpreters(opts?: MemoryHistoryBuildOptions): [History, HistoryInterpreterPair] {
   return makeHistoryInterpreters(createMemoryHistory(opts));
 }
