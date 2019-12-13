@@ -19,7 +19,7 @@ export interface Matcher {
   (path: string): [boolean, any];
 }
 
-export function compileTemplate<T = any>(template: string): Matcher {
+export function compileTemplate(template: string): Matcher {
   const tplPath = getPath(template);
   let keys: Key[] = [];
   const regexp = new RegExp('^'+ tplPath.replace(

@@ -345,5 +345,3 @@ export function shouldYield() {
     shouldYieldToHost()
   );
 }
-
-export {getCurrentTime, requestPaint, forceFrameRate} from './executors';
