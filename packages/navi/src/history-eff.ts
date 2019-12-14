@@ -24,29 +24,27 @@ export function liftHistory(cmd: HistoryAction, value?: any) {
  */
 export function makeHistoryNat(history: History) {
   return function historyNat<A>(eff: HistoryEff<A>): A {
-    scheduleSyncCallback(() => {
-      switch (eff.cmd.type) {
-      case 'push':
-        history.push({...eff.cmd});
-        break;
+    switch (eff.cmd.type) {
+    case 'push':
+      history.push({...eff.cmd});
+      break;
 
-      case 'replace':
-        history.replace(eff.cmd.pathname, eff.cmd.state);
-        break;
+    case 'replace':
+      history.replace(eff.cmd.pathname, eff.cmd.state);
+      break;
 
-      case 'go':
-        history.go(eff.cmd.amount);
-        break;
+    case 'go':
+      history.go(eff.cmd.amount);
+      break;
 
-      case 'goback':
-        history.goBack();
-        break;
+    case 'goback':
+      history.goBack();
+      break;
 
-      case 'forward':
-        history.goForward();
-        break;
-      }
-    });
+    case 'forward':
+      history.goForward();
+      break;
+    }
 
     return eff.val;
   }

@@ -24,12 +24,10 @@ export function makeHistorySubInterpreter(history: History) {
     let unsubscribe: (() => void) | null = null;
     // subscribe
     let listener: LocationListener = (location, action) => {
-      scheduleSyncCallback(() => {
-        for (let i = 0, len = model.length; i < len; i++) {
-          queue.push(model[i].fn(location, action));
-        }
-        queue.run();
-      });
+      for (let i = 0, len = model.length; i < len; i++) {
+        queue.push(model[i].fn(location, action));
+      }
+      queue.run();
     };
 
     function commit(xs: Array<HistorySub<A>>) {
