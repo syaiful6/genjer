@@ -1,5 +1,5 @@
 import {Dispatch, Transition, Batch, transition, purely, make, mergeInterpreter} from '@genjer/genjer';
-import {makeHashHistoryInterpreters, liftHistory, HistoryEff, HistorySub, onHistoryChange} from '@genjer/navi';
+import {makeBrowserHistoryInterpreters, liftHistory, HistoryEff, HistorySub, onHistoryChange} from '@genjer/navi';
 import {createHistoryListener} from '@genjer/navi/router';
 import {VNode} from 'snabbdom/vnode';
 import {h} from 'snabbdom/h';
@@ -76,7 +76,7 @@ function subs(): Batch<HistorySub<Action>, Action> {
 }
 
 function main() {
-  const [history, historyInterpreters] = makeHashHistoryInterpreters();
+  const [history, historyInterpreters] = makeBrowserHistoryInterpreters();
   const interpreter = mergeInterpreter(historyInterpreters[0], historyInterpreters[1]);
   const initialState: State = {
     page: routeMatcher(history.location.pathname),

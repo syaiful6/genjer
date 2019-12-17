@@ -1,23 +1,31 @@
 {
-  "name": "@genjer/genjer",
+  "name": "@genjer/mithril",
   "version": "0.0.0",
-  "description": "frontend application structure",
+  "description": "Mithril renderer for genjer",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "module": "lib/index.esm.js",
   "author": "Syaiful Bahri",
   "license": "MIT",
+  "dependencies": {
+    "history": "4.10.x",
+    "@types/history": "^4.7.3"
+  },
   "peerDependencies": {
-    "@jonggrang/prelude": ">= 1.0.0 < 2"
+    "@genjer/genjer": "< 1",
+    "mithril": ">= 2.0.4 < 3",
+    "@types/mithril": ">= 2.0.2 < 3"
   },
   "devDependencies": {
     "typescript": "^3.7.2",
     "mocha": "^5.2.0",
     "@types/mocha": "^5.2.1",
+    "@types/mithril": "^2.0.2",
     "@types/node": "^12.12.7",
     "rollup": "^1.27.0",
     "@wessberg/rollup-plugin-ts": "^1.1.83",
-    "@jonggrang/prelude": "^1.0.0"
+    "@jonggrang/prelude": "^1.0.0",
+    "mithril": "^2.0.4"
   },
   "scripts": {
     "compile": "rollup -c"

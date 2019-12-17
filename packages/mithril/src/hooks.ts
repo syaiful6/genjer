@@ -1,7 +1,5 @@
-import {VNode, VNodeData, vnode as CreateVNode, Key} from 'snabbdom/vnode';
-import {currentSignal} from './signal';
-import {id} from './utils';
-import {scheduleCallback, PriorityLevel} from './scheduler';
+import {Children, ChildArrayOrPrimitive, Component, Vnode} from 'mithril';
+import {currentSignal, scheduleSyncCallback} from '@genjer/genjer';
 
 type Effect = () => void;
 
@@ -18,6 +16,10 @@ type HookedState = {
 }
 
 let currentState: HookedState;
+
+function id<A>(a: A) {
+  return a;
+}
 
 const call = Function.prototype.call.bind(
   Function.prototype.call
@@ -121,7 +123,7 @@ export function useEffect(fn: EffectFn, deps: any[]) {
       state.cleanups.delete(depsIndex);
     }
 
-    state.updates.push(() => scheduleCallback(PriorityLevel.LowPriority, runCallbackFn));
+    state.updates.push(() => scheduleSyncCallback(runCallbackFn));
   }
 }
 
@@ -141,8 +143,15 @@ export function useCallback<
   return useMemo(() => resultFn, deps);
 }
 
-function init(thunk: VNode) {
-  (thunk as any).data.state = {
+type BaseProps = {
+  children?: ChildArrayOrPrimitive;
+  vnode?: Vnode<any, any>;
+}
+
+export type FunctionComponent<Props = {}> = (props: Props & BaseProps) => Children | null | void;
+
+function init(this: HookedState, vnode: Vnode<any, HookedState>) {
+  Object.assign(vnode.state, {
     setup: false,
     states: [],
     statesIndex: 0,
@@ -150,18 +159,16 @@ function init(thunk: VNode) {
     depsIndex: 0,
     updates: [],
     cleanups: new Map()
-  };
-  let vnode = runComponent(thunk);
-  copyToComponent(vnode, thunk);
+  });
 }
 
-function update(_: VNode, vnode: VNode) {
+function update(vnode: Vnode<any, HookedState>) {
   const prevState = currentState;
-  currentState = (vnode as any).data.state;
+  currentState = vnode.state;
   try {
-    (vnode as any).data.state.updates.forEach(call);
+    vnode.state.updates.forEach(call);
   } finally {
-    Object.assign((vnode as any).data.state, {
+    Object.assign(vnode.state, {
       setup: true,
       updates: [],
       depsIndex: 0,
@@ -171,69 +178,43 @@ function update(_: VNode, vnode: VNode) {
   }
 }
 
-function destroy(vnode: VNode) {
+function teardown(vnode: Vnode<any, HookedState>) {
   const prevState = currentState;
-  currentState = (vnode as any).data.state;
-  const xs = (vnode as any).data.state.cleanups as Map<string, () => void>;
+  currentState = vnode.state;
   try {
-    xs.forEach(call);
+    vnode.state.cleanups.forEach(call);
   } finally {
     currentState = prevState;
   }
 }
 
-export function prepatch(oldVnode: VNode, thunk: VNode) {
-  let old = oldVnode.data as VNodeData, cur = thunk.data as VNodeData;
-  if (old.fn === cur.fn) {
-    (thunk as any).data.state = (oldVnode as any).data.state
-    update(oldVnode, thunk);
-    copyToComponent(runComponent(thunk), thunk);
-    return;
+export function withHooks<Attrs = {}>(
+  component: FunctionComponent<Attrs >,
+  initialProps?: Partial<Attrs>
+): Component<Attrs, HookedState> {
+  function render(this: HookedState, vnode: Vnode<Attrs, HookedState>): Children | null | void {
+    const prevState = currentState;
+    currentState = vnode.state;
+    vnode.children
+    try {
+      return component({
+        ...initialProps,
+        ...vnode.attrs,
+        vnode,
+        children: vnode.children,
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      currentState = prevState
+    }
   }
-  destroy(oldVnode);
-  init(thunk);
-}
 
-function render(vnode: VNode, args: any[] = []) {
-  const prevState = currentState;
-  currentState = (vnode as any).data.state;
-  const cur = vnode.data as VNodeData;
-  try {
-    return (cur.fn as any)(cur.emit, ...args);
-  } finally {
-    currentState = prevState;
-  }
-}
-
-export function stateful(sel: string, fn: Function, emit: Function, args: any[], key?: Key): VNode {
-  return CreateVNode(sel, {
-    key,
-    hook: {init, prepatch},
-    fn: fn,
-    emit: emit,
-    args: args
-  }, undefined, undefined, undefined);
-}
-
-function runComponent(thunk: VNode) {
-  const cur = thunk.data as VNodeData;
-  let vnode = render(thunk, cur.args);
-  return vnode;
-}
-
-export function copyToComponent(vnode: VNode, thunk: VNode): void {
-  thunk.elm = vnode.elm;
-  (vnode.data as VNodeData).hook = {
-    ...(vnode.data && vnode.data.hook ? vnode.data.hook : {}),
-    destroy: destroy,
-    create: update,
+  return {
+    oninit: init,
+    oncreate: update,
+    onupdate: update,
+    view: render,
+    onremove: teardown,
   };
-  (vnode.data as VNodeData).fn = (thunk.data as VNodeData).fn;
-  (vnode.data as VNodeData).args = (thunk.data as VNodeData).args;
-  (vnode.data as VNodeData).emit = (thunk.data as VNodeData).emit;
-  (vnode.data as VNodeData).state = (thunk.data as VNodeData).state;
-  thunk.data = vnode.data;
-  thunk.children = vnode.children;
-  thunk.text = vnode.text;
-  thunk.elm = vnode.elm;
 }

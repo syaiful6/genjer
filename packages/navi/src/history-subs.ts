@@ -1,5 +1,5 @@
 import {Location, Action, History, LocationListener} from 'history'
-import {withAccumArray, EventQueueInstance, scheduleSyncCallback} from '@genjer/genjer';
+import {withAccumArray, EventQueueInstance} from '@genjer/genjer';
 
 export type HistoryChangeListener<A> = (location: Location, action: Action) => A;
 

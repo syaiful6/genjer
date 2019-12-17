@@ -1,6 +1,3 @@
-import {Module} from 'snabbdom/modules/module';
-import {VNode} from 'snabbdom/vnode';
-import {init as initRender} from 'snabbdom'
 import { Either, left, right } from '@jonggrang/prelude';
 import {Loop, EventQueue, withAccum, fix} from './event-queue';
 import {mergeInterpreter, interpretNever} from './interpreter'
@@ -19,9 +16,26 @@ export interface Dispatch<A> {
 }
 
 export interface App<F, G, S, A> {
-  render: (dispatch: Dispatch<A>, model: S) => VNode;
+  /**
+   * render the current state to UI using any lib, take a dispatch function and current
+   * model
+   */
+  render: (dispatch: Dispatch<A>, model: S) => void;
+
+  /**
+   * The reducers, take current state and action and returns new state and array
+   * of effects
+   */
   update: (model: S, action: A) => Transition<F, S, A>;
+
+  /**
+   * Subscription function
+   */
   subs: (model: S) => Batch<G, A>;
+
+  /**
+   * The initial state and effect
+   */
   init: Transition<F, S, A>;
 }
 
@@ -64,12 +78,7 @@ type AppState<M, Q, S, I> = {
   model: S;
   interpret: Loop<Either<M, Q>>;
   status: RenderStatus;
-  vdom: VNode;
 };
-
-export type MakeAppOptions = {
-  modules: Partial<Module>[];
-}
 
 const enum ExecutionContext {
   NoWork = 0b00000000,
@@ -81,12 +90,9 @@ export function makeAppQueue<M, Q, S, I>(
   onChange: (c: AppChange<S, I>) => void,
   interpreter: EventQueue<Either<M, Q>, I>,
   app: App<M, Q, S, I>,
-  el: Element,
-  options?: Partial<MakeAppOptions>
+  el: Element
 ): EventQueue<AppAction<M, Q, S, I>, AppAction<M, Q, S, I>> {
   return withAccum(self => {
-    const opts: Partial<MakeAppOptions> = options || {};
-    const patch = initRender(opts.modules || []);
     let ourSignal = makeSignal();
     let executionContext: number = ExecutionContext.NoWork;
 
@@ -126,7 +132,6 @@ export function makeAppQueue<M, Q, S, I>(
     function update(state: AppState<M, Q, S, I>, action: AppAction<M, Q, S, I>): AppState<M, Q, S, I> {
       let next: Transition<M, S, I>,
         status: RenderStatus,
-        vdom: VNode,
         nextState: AppState<M, Q, S, I>,
         appChange: AppChange<S, I>,
         prevSignal: Signal | null;
@@ -154,12 +159,12 @@ export function makeAppQueue<M, Q, S, I>(
         // during render use switch current signal
         prevSignal = currentSignal.current;
         currentSignal.current = ourSignal;
-        vdom = patch(state.vdom, app.render(emit, state.model));
+        app.render(emit, state.model);
         currentSignal.current = prevSignal;
         if ((executionContext & ExecutionContext.Render) === ExecutionContext.Render) {
           executionContext ^= ExecutionContext.Render;
         }
-        return {...state, vdom, status: RenderStatus.FLUSHED};
+        return {...state, status: RenderStatus.FLUSHED};
       }
     }
 
@@ -192,14 +197,13 @@ export function makeAppQueue<M, Q, S, I>(
 
     const prevSignal = currentSignal.current;
     currentSignal.current = ourSignal;
-    const vdom = patch(el, app.render(emit, app.init.model));
+    app.render(emit, app.init.model);
     currentSignal.current = prevSignal;
 
     const it2 = interpreter({...self, push: pushAction});
     forInFn(app.init.effects, pushEffect);
 
     let st: AppState<M, Q, S, I> = {
-      vdom,
       status: RenderStatus.NOCHANGE,
       interpret: it2,
       model: app.init.model
@@ -216,8 +220,7 @@ interface SubscriptionState<S, I> {
 export function make<M, Q, S, I>(
   interpreter: EventQueue<Either<M, Q>, I>,
   app: App<M, Q, S, I>,
-  el: Element,
-  options?: Partial<MakeAppOptions>
+  el: Element
 ): AppInstance<S, I> {
   let subs: SubscriptionState<S, I> = {fresh: 0, cbs: {}};
   let state: S = app.init.model;
@@ -242,7 +245,7 @@ export function make<M, Q, S, I>(
     };
   }
 
-  let queue = fix(makeAppQueue(handleChange, interpreter, app, el, options));
+  let queue = fix(makeAppQueue(handleChange, interpreter, app, el));
 
   function push(i: I) {
     queue.push({tag: AppActionType.ACTION, payload: i });
@@ -275,17 +278,16 @@ function nextStatus<S>(prev: S, next: S, status: RenderStatus): RenderStatus {
 }
 
 export type PureApp<S, A> = {
-  render: (dispatch: Dispatch<A>, model: S) => VNode;
+  render: (dispatch: Dispatch<A>, model: S) => void;
   update: (model: S, action: A) => S;
   init: S;
 }
 
-export function makePureApp<S, A>(app: PureApp<S, A>, el: Element, opts?: Partial<MakeAppOptions>) {
+export function makePureApp<S, A>(app: PureApp<S, A>, el: Element) {
   return make(
     mergeInterpreter(interpretNever(), interpretNever()),
     liftPureApp(app),
-    el,
-    opts
+    el
   )
 }
 

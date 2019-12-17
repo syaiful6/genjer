@@ -1,4 +1,3 @@
-import {scheduleSyncCallback} from '@genjer/genjer';
 import {History} from 'history';
 import {HistoryAction} from './types';
 
