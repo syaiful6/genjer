@@ -1,13 +1,10 @@
+import {Vnode} from 'mithril';
+import h from 'mithril/hyperscript';
+
 import {Dispatch, Transition, Batch, transition, purely, make, mergeInterpreter} from '@genjer/genjer';
 import {makeBrowserHistoryInterpreters, liftHistory, HistoryEff, HistorySub, onHistoryChange} from '@genjer/navi';
 import {createHistoryListener} from '@genjer/navi/router';
-import {VNode} from 'snabbdom/vnode';
-import {h} from 'snabbdom/h';
-import ListenerModule from 'snabbdom/modules/eventlisteners';
-import AttrModule from 'snabbdom/modules/attributes';
-import ClassModule from 'snabbdom/modules/class';
-import PropModule from 'snabbdom/modules/props';
-import StyleModule from 'snabbdom/modules/style';
+import {createRender} from '@genjer/mithril';
 import {Page, routeMatcher} from './router';
 
 type Action
@@ -44,24 +41,22 @@ function update(state: State, action: Action): Transition<HistoryEff<Action>, St
   }
 }
 
-function render(dispatch: Dispatch<Action>, state: State): VNode {
+function view(dispatch: Dispatch<Action>, state: State): Vnode {
   const page = state.page;
   return h('div', [
-    renderNavigation(dispatch),
+    viewNavigation(dispatch),
     h('pre', JSON.stringify(page))
   ]);
 }
 
-function renderNavigation(dispatch: Dispatch<Action>): VNode {
+function viewNavigation(dispatch: Dispatch<Action>): Vnode {
   const links = [['/', 'home'], ['/users', 'users']];
   return h('ul', links.map(text =>
     h('li', {
       key: text[0],
-      on: {
-        click: (e: Event) => {
-          e.preventDefault();
-          dispatch({tag: 'navigateTo', path: text[0] })
-        }
+      onclick: (e: Event) => {
+        e.preventDefault();
+        dispatch({tag: 'navigateTo', path: text[0] })
       }
     }, text[1]))
   )
@@ -82,11 +77,10 @@ function main() {
     page: routeMatcher(history.location.pathname),
     users: []
   }
+  const render = createRender(view, document.querySelector('.app') as Element);
   const appInstance = make(
     interpreter,
     {render, update, subs, init: purely(initialState)},
-    document.querySelector('.app') as Element,
-    {modules: [AttrModule, PropModule, ClassModule, StyleModule, ListenerModule]}
   );
   appInstance.run()
 }

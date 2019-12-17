@@ -89,8 +89,7 @@ const enum ExecutionContext {
 export function makeAppQueue<M, Q, S, I>(
   onChange: (c: AppChange<S, I>) => void,
   interpreter: EventQueue<Either<M, Q>, I>,
-  app: App<M, Q, S, I>,
-  el: Element
+  app: App<M, Q, S, I>
 ): EventQueue<AppAction<M, Q, S, I>, AppAction<M, Q, S, I>> {
   return withAccum(self => {
     let ourSignal = makeSignal();
@@ -219,8 +218,7 @@ interface SubscriptionState<S, I> {
 
 export function make<M, Q, S, I>(
   interpreter: EventQueue<Either<M, Q>, I>,
-  app: App<M, Q, S, I>,
-  el: Element
+  app: App<M, Q, S, I>
 ): AppInstance<S, I> {
   let subs: SubscriptionState<S, I> = {fresh: 0, cbs: {}};
   let state: S = app.init.model;
@@ -245,7 +243,7 @@ export function make<M, Q, S, I>(
     };
   }
 
-  let queue = fix(makeAppQueue(handleChange, interpreter, app, el));
+  let queue = fix(makeAppQueue(handleChange, interpreter, app));
 
   function push(i: I) {
     queue.push({tag: AppActionType.ACTION, payload: i });
@@ -283,11 +281,10 @@ export type PureApp<S, A> = {
   init: S;
 }
 
-export function makePureApp<S, A>(app: PureApp<S, A>, el: Element) {
+export function makePureApp<S, A>(app: PureApp<S, A>) {
   return make(
     mergeInterpreter(interpretNever(), interpretNever()),
-    liftPureApp(app),
-    el
+    liftPureApp(app)
   )
 }
 
