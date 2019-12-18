@@ -6,7 +6,7 @@ export * from './types';
 export * from './transition';
 export * from './event-queue';
 export * from './interpreter';
-export {currentSignal, CurrentSignal} from './signal';
+export {currentSignal, Signal} from './signal';
 export { scheduleSyncCallback } from './sync-schedule';
 import * as scheduler from './scheduler';
 export { scheduler };

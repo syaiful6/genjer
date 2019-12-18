@@ -1,5 +1,7 @@
 import {Children, ChildArrayOrPrimitive, Component, Vnode} from 'mithril';
-import {currentSignal, scheduleSyncCallback} from '@genjer/genjer';
+import {scheduleSyncCallback} from '@genjer/genjer';
+
+import {resolveCurrentSignal} from './signal';
 
 type Effect = () => void;
 
@@ -38,14 +40,6 @@ function updateDeps(deps: null | any[]): boolean {
       : false; // Invalid value, do nothing
   state.depsStates[depsIndex] = deps;
   return shouldRecompute;
-}
-
-function resolveCurrentSignal() {
-  let sign = currentSignal.current;
-  if (sign === null) {
-    throw new Error('useXXX hook can only called in render function');
-  }
-  return sign;
 }
 
 type UpdateFn<S = any> = (s: S | ((_: S) => S), ix: number) => S;
@@ -189,7 +183,7 @@ function teardown(vnode: Vnode<any, HookedState>) {
 }
 
 export function withHooks<Attrs = {}>(
-  component: FunctionComponent<Attrs >,
+  component: FunctionComponent<Attrs>,
   initialProps?: Partial<Attrs>
 ): Component<Attrs, HookedState> {
   function render(this: HookedState, vnode: Vnode<Attrs, HookedState>): Children | null | void {

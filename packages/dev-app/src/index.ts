@@ -1,10 +1,9 @@
 import {Vnode} from 'mithril';
-import h from 'mithril/hyperscript';
 
 import {Dispatch, Transition, Batch, transition, purely, make, mergeInterpreter} from '@genjer/genjer';
 import {makeBrowserHistoryInterpreters, liftHistory, HistoryEff, HistorySub, onHistoryChange} from '@genjer/navi';
 import {createHistoryListener} from '@genjer/navi/router';
-import {createRender} from '@genjer/mithril';
+import {createRender, h} from '@genjer/mithril';
 import {Page, routeMatcher} from './router';
 
 type Action
