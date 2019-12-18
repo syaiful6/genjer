@@ -89,7 +89,7 @@ export function useReducer<S, A>(reducer: (s: S, a: A) => S, init: S): [S, (a: A
   return [value, dispatch];
 }
 
-export function useEffect(fn: EffectFn, deps: any[]) {
+const effect = (isAsync: boolean = false) => (fn: EffectFn, deps: any[]) => {
   const state = currentState;
   const shouldRecompute = updateDeps(deps);
   if (shouldRecompute) {
@@ -117,8 +117,19 @@ export function useEffect(fn: EffectFn, deps: any[]) {
       state.cleanups.delete(depsIndex);
     }
 
-    state.updates.push(() => scheduleSyncCallback(runCallbackFn));
+    state.updates.push(
+      isAsync ? () => scheduleSyncCallback(runCallbackFn) : runCallbackFn
+    );
   }
+}
+
+export const useEffect = effect(true);
+
+export const useLayoutEffect = effect();
+
+export function useRef<T>(initialValue: T): {current: T} {
+  const [value] = updateState({ current: initialValue });
+  return value;
 }
 
 export function useMemo<T>(fn: () => T, deps: any[]): T {

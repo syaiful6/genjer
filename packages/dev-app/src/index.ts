@@ -1,13 +1,13 @@
-import {Vnode} from 'mithril';
+import {Children} from 'mithril';
 
 import {Dispatch, Transition, Batch, transition, purely, make, mergeInterpreter} from '@genjer/genjer';
-import {makeBrowserHistoryInterpreters, liftHistory, HistoryEff, HistorySub, onHistoryChange} from '@genjer/navi';
+import {makeHashHistoryInterpreters, liftHistory, HistoryEff, HistorySub, onHistoryChange} from '@genjer/navi';
 import {createHistoryListener} from '@genjer/navi/router';
 import {createRender, h} from '@genjer/mithril';
 import {Page, routeMatcher} from './router';
 
 type Action
-  = {tag: 'navigate'; page: Page}
+  = {tag: 'routeChange'; page: Page}
   | {tag: 'navigateTo'; path: string}
   | {tag: 'none'};
 
@@ -26,12 +26,12 @@ function pushHistory(path: string): HistoryEff<Action> {
 }
 
 function navigateRoute(page: Page): Action {
-  return {tag: 'navigate', page};
+  return {tag: 'routeChange', page};
 }
 
 function update(state: State, action: Action): Transition<HistoryEff<Action>, State, Action> {
   switch (action.tag) {
-  case 'navigate':
+  case 'routeChange':
     return purely({...state, page: action.page});
   case 'navigateTo':
     return transition(state, [pushHistory(action.path)]);
@@ -40,7 +40,7 @@ function update(state: State, action: Action): Transition<HistoryEff<Action>, St
   }
 }
 
-function view(dispatch: Dispatch<Action>, state: State): Vnode {
+function view(dispatch: Dispatch<Action>, state: State): Children {
   const page = state.page;
   return h('div', [
     viewNavigation(dispatch),
@@ -48,11 +48,12 @@ function view(dispatch: Dispatch<Action>, state: State): Vnode {
   ]);
 }
 
-function viewNavigation(dispatch: Dispatch<Action>): Vnode {
-  const links = [['/', 'home'], ['/users', 'users']];
+function viewNavigation(dispatch: Dispatch<Action>): Children {
+  const links = [['/', 'Home'], ['/users', 'Users'], ['/about', 'About']];
   return h('ul', links.map(text =>
     h('li', {
       key: text[0],
+      href: '#',
       onclick: (e: Event) => {
         e.preventDefault();
         dispatch({tag: 'navigateTo', path: text[0] })
@@ -70,7 +71,7 @@ function subs(): Batch<HistorySub<Action>, Action> {
 }
 
 function main() {
-  const [history, historyInterpreters] = makeBrowserHistoryInterpreters();
+  const [history, historyInterpreters] = makeHashHistoryInterpreters();
   const interpreter = mergeInterpreter(historyInterpreters[0], historyInterpreters[1]);
   const initialState: State = {
     page: routeMatcher(history.location.pathname),
