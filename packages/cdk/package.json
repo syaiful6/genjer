@@ -1,7 +1,7 @@
 {
-  "name": "@genjer/mithril",
+  "name": "@genjer/cdk",
   "version": "0.0.0",
-  "description": "Mithril renderer for genjer",
+  "description": "Genjer's component development kit",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "module": "lib/index.esm.js",
@@ -10,9 +10,6 @@
   "dependencies": {
   },
   "peerDependencies": {
-    "@genjer/genjer": "< 1",
-    "mithril": ">= 2.0.4 < 3",
-    "@types/mithril": ">= 2.0.2 < 3"
   },
   "devDependencies": {
     "typescript": "^3.7.2",
@@ -21,9 +18,7 @@
     "@types/mithril": "^2.0.2",
     "@types/node": "^12.12.7",
     "rollup": "^1.27.0",
-    "@wessberg/rollup-plugin-ts": "^1.1.83",
-    "@jonggrang/prelude": "^1.0.0",
-    "mithril": "^2.0.4"
+    "@wessberg/rollup-plugin-ts": "^1.1.83"
   },
   "scripts": {
     "compile": "rollup -c"
