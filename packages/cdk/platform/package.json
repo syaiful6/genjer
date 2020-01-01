@@ -1,0 +1,7 @@
+{
+  "name": "@genjer/cdk/platform",
+  "main": "../lib/platform.js",
+  "typings": "../lib/platform.d.ts",
+  "module": "../lib/platform.esm.js",
+  "sideEffects": false
+}
