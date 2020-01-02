@@ -1,0 +1,7 @@
+{
+  "name": "@genjer/cdk/browser",
+  "main": "../lib/browser.js",
+  "typings": "../lib/browser.d.ts",
+  "module": "../lib/browser.esm.js",
+  "sideEffects": false
+}

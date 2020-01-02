@@ -23,7 +23,7 @@ function id<A>(a: A) {
   return a;
 }
 
-const call = Function.prototype.call.bind(
+const call = /*#__PURE__*/ Function.prototype.call.bind(
   Function.prototype.call
 );
 
@@ -123,9 +123,9 @@ const effect = (isAsync: boolean = false) => (fn: EffectFn, deps: any[]) => {
   }
 }
 
-export const useEffect = effect(true);
+export const useEffect = /*#__PURE__*/ effect(true);
 
-export const useLayoutEffect = effect();
+export const useLayoutEffect = /*#__PURE__*/ effect();
 
 export function useRef<T>(initialValue: T): {current: T} {
   const [value] = updateState({ current: initialValue });

@@ -51,15 +51,17 @@ function view(dispatch: Dispatch<Action>, state: State): Children {
 function viewNavigation(dispatch: Dispatch<Action>): Children {
   const links = [['/', 'Home'], ['/users', 'Users'], ['/about', 'About']];
   return h('ul', links.map(text =>
-    h('li', {
-      key: text[0],
-      href: '#',
-      onclick: (e: Event) => {
-        e.preventDefault();
-        dispatch({tag: 'navigateTo', path: text[0] })
-      }
-    }, text[1]))
-  )
+      h('li', {key: text[0]},
+        h('a', {
+          href: '#',
+          onclick: (e: Event) => {
+            e.preventDefault();
+            dispatch({tag: 'navigateTo', path: text[0]})
+          }
+        }, text[1])
+      )
+    )
+  );
 }
 
 const routeChangeListener = createHistoryListener(routeMatcher, navigateRoute);
