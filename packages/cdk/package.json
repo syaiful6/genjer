@@ -7,9 +7,13 @@
   "module": "lib/index.esm.js",
   "author": "Syaiful Bahri",
   "license": "MIT",
-  "dependencies": {
-  },
+  "files": [
+    "lib/",
+    "browser/",
+    "platform/"
+  ],
   "peerDependencies": {
+    "@genjer/genjer": "< 1"
   },
   "devDependencies": {
     "typescript": "^3.7.2",

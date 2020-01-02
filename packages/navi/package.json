@@ -7,6 +7,10 @@
   "module": "lib/index.esm.js",
   "author": "Syaiful Bahri",
   "license": "MIT",
+  "files": [
+    "lib/",
+    "router/"
+  ],
   "dependencies": {
     "history": "4.10.x",
     "@types/history": "^4.7.3"

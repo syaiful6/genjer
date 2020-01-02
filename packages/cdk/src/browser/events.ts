@@ -47,6 +47,9 @@ function bindEvents<A>(queue: EventQueueInstance<A>, bindings: EventSub<A>[]): U
   };
 }
 
+/**
+ * The interpreter for `EventSub` command.
+ */
 export function createDOMEventInterpreter(): <A>(queue: EventQueueInstance<A>) => Loop<EventSub<A>> {
   function subs<A>(queue: EventQueueInstance<A>) {
     let unbindFn: UnbindFn | null = null;

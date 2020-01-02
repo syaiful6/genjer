@@ -30,7 +30,7 @@ export function onAnimationFrame<A>(fn: (unix: number) => A): AnimationSub<A> {
  * @param fn
  */
 export function onAnimationFrameDelta<A>(fn: (delta: number) => A): AnimationSub<A> {
-  return new AnimationSub(AnimationSubType.TIME, fn);
+  return new AnimationSub(AnimationSubType.DELTA, fn);
 }
 
 /**

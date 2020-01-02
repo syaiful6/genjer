@@ -7,6 +7,9 @@
   "module": "lib/index.esm.js",
   "author": "Syaiful Bahri",
   "license": "MIT",
+  "files": [
+    "lib/"
+  ],
   "dependencies": {
   },
   "peerDependencies": {
