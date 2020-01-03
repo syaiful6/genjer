@@ -26,6 +26,20 @@ export function onGlobalEvent<A>(node: GlobalNode, name: string, fn: (ev: Event)
   return new EventSub(node, name, fn, options);
 }
 
+/**
+ * Register/bind an event on document
+ */
+export function onDocument<A>(name: string, fn: (ev: Event) => A, options?: EventOptions): EventSub<A> {
+  return onGlobalEvent(GlobalNode.DOCUMENT, name, fn, options);
+}
+
+/**
+ * Register/bind an event on document
+ */
+export function onWindow<A>(name: string, fn: (ev: Event) => A, options?: EventOptions): EventSub<A> {
+  return onGlobalEvent(GlobalNode.WINDOW, name, fn, options);
+}
+
 function bindEvents<A>(queue: EventQueueInstance<A>, bindings: EventSub<A>[]): UnbindFn {
   const unbindings: UnbindFn[] = bindings.map(binding => {
     function handler(ev: Event) {
