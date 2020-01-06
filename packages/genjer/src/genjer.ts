@@ -5,7 +5,6 @@ import {purely} from './transition'
 import {Transition, Batch} from './types';
 import {recordValues} from './utils';
 import {currentSignal, makeSignal, Signal} from './signal';
-import {scheduleSyncCallback} from './sync-schedule';
 import {scheduleCallback, PriorityLevel} from './scheduler';
 
 /**
@@ -224,13 +223,11 @@ export function make<M, Q, S, I>(
   let state: S = app.init.model;
 
   function handleChange(ac: AppChange<S, I>): void {
-    scheduleCallback(PriorityLevel.NormalPriority, () => {
-      state = ac.model;
-      let fns = recordValues(subs.cbs);
-      for (let i = 0, len = fns.length; i < len; i++) {
-        fns[i](ac);
-      }
-    });
+    state = ac.model;
+    let fns = recordValues(subs.cbs);
+    for (let i = 0, len = fns.length; i < len; i++) {
+      fns[i](ac);
+    }
   }
 
   function subscribe(cb: (_: AppChange<S, I>) => void): () => void {
@@ -249,14 +246,10 @@ export function make<M, Q, S, I>(
     queue.push({tag: AppActionType.ACTION, payload: i });
   }
 
-  function run() {
-    scheduleSyncCallback(queue.run);
-  }
-
   return {
     subscribe,
     push,
-    run,
+    run: queue.run,
     snapshot: () => state,
     restore: (s: S) => {
       queue.push({tag: AppActionType.RESTORE, payload: s});
