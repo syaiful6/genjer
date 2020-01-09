@@ -52,7 +52,7 @@ export interface AppChange<S, A> {
   model: S;
 }
 
-export const enum AppActionType {
+const enum AppActionType {
   RESTORE,
   ACTION,
   INTERPRET,
@@ -85,7 +85,7 @@ const enum ExecutionContext {
   Render = 0b00000010
 }
 
-export function makeAppQueue<M, Q, S, I>(
+function makeAppQueue<M, Q, S, I>(
   onChange: (c: AppChange<S, I>) => void,
   interpreter: EventQueue<Either<M, Q>, I>,
   app: App<M, Q, S, I>

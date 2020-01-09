@@ -1,6 +1,5 @@
 export {
-  App, AppInstance, AppChange, AppActionType, makeAppQueue,
-  make, PureApp, makePureApp, liftPureApp, Dispatch
+  App, AppInstance, AppChange, make, PureApp, makePureApp, liftPureApp, Dispatch
 } from './genjer';
 export * from './types';
 export * from './transition';
