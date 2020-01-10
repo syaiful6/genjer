@@ -7,7 +7,7 @@ type Effect = () => void;
 
 type EffectFn = () => Effect | void;
 
-type HookedState = {
+export type HookedState = {
   setup: boolean;
   states: any[];
   statesIndex: number,

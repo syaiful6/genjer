@@ -2,6 +2,7 @@ import typescript from '@wessberg/rollup-plugin-ts';
 import pkg from './package.json';
 import platformPkg from './platform/package.json'
 import browserPkg from './browser/package.json';
+import keycodesPkg from './keycodes/package.json';
 
 export default [
   {
@@ -33,6 +34,16 @@ export default [
     output: [
       { file: browserPkg.main.replace('../', ''), format: 'cjs' },
       { file: browserPkg.module.replace('../', ''), format: 'es' }
+    ]
+  },
+  {
+    input: 'src/keycodes/index.ts',
+    plugins: [
+      typescript()
+    ],
+    output: [
+      { file: keycodesPkg.main.replace('../', ''), format: 'cjs' },
+      { file: keycodesPkg.module.replace('../', ''), format: 'es' }
     ]
   }
 ]

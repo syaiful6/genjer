@@ -1,0 +1,7 @@
+{
+  "name": "@genjer/cdk/keycodes",
+  "main": "../lib/keycodes.js",
+  "typings": "../lib/keycodes.d.ts",
+  "module": "../lib/keycodes.esm.js",
+  "sideEffects": false
+}
