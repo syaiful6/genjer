@@ -16,5 +16,5 @@ export const routeMatcher = createRouteMatcher<Page>({id: 'notfound', params: {}
   '/': () => ({ id: 'home', params: {}}),
   '/about': () => ({ id: 'about', params: {}}),
   '/users': () => ({ id: 'users', params: {}}),
-  '/users/:id': (params: {id: string}) => ({ id: 'users', params }),
+  '/users/:id': (params: {id: string}) => ({ id: 'profile', params }),
 });
