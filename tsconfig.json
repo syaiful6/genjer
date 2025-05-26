@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2020",
     "module": "commonjs",
     "strict": true,
-    "declaration": true,
+    "declaration": false,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": true,
@@ -13,11 +13,7 @@
     "noUnusedLocals": true,
     "lib": [
       "dom",
-      "es5",
-      "es2015.core",
-      "es2015.promise",
-      "es2015.iterable",
-      "es2015.generator"
+      "es2020"
     ],
     "types": [
       "mocha",

@@ -1,4 +1,4 @@
-import {Children, ChildArrayOrPrimitive, Component, Vnode} from 'mithril';
+import type {Children, ChildArrayOrPrimitive, Component, Vnode} from 'mithril';
 import {scheduleSyncCallback} from '@genjer/genjer';
 
 import {resolveCurrentSignal} from './signal';

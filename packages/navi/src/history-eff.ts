@@ -25,11 +25,11 @@ export function makeHistoryNat(history: History) {
   return function historyNat<A>(eff: HistoryEff<A>): A {
     switch (eff.cmd.type) {
     case 'push':
-      history.push({...eff.cmd});
+      history.push(eff.cmd.to, eff.cmd.state);
       break;
 
     case 'replace':
-      history.replace(eff.cmd.pathname, eff.cmd.state);
+      history.replace(eff.cmd.to, eff.cmd.state);
       break;
 
     case 'go':
@@ -37,11 +37,11 @@ export function makeHistoryNat(history: History) {
       break;
 
     case 'goback':
-      history.goBack();
+      history.back();
       break;
 
     case 'forward':
-      history.goForward();
+      history.forward();
       break;
     }
 

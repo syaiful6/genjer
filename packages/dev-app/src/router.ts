@@ -12,6 +12,7 @@ export type Page
   | BasePage<'profile', {id: string}>
   | BasePage<'notfound'>
 
+
 export const routeMatcher = createRouteMatcher<Page>({id: 'notfound', params: {}}, {
   '/': () => ({ id: 'home', params: {}}),
   '/about': () => ({ id: 'about', params: {}}),

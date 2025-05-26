@@ -6,6 +6,9 @@ import {createHistoryListener} from '@genjer/navi/router';
 import {createRender, h} from '@genjer/mithril';
 import {Page, routeMatcher} from './router';
 
+// css
+import './css/index.css'
+
 type Action
   = {tag: 'routeChange'; page: Page}
   | {tag: 'navigateTo'; path: string}
@@ -22,7 +25,7 @@ type State = {
 }
 
 function pushHistory(path: string): HistoryEff<Action> {
-  return liftHistory({type: 'push', pathname: path}, {tag: 'none'}) as any;
+  return liftHistory({type: 'push', to: path}, {tag: 'none'}) as any;
 }
 
 function navigateRoute(page: Page): Action {

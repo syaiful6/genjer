@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "ES5",
+    "target": "es2022",
     "noImplicitAny": true,
     "strictNullChecks": true,
     "declaration": true,
@@ -10,11 +10,7 @@
     "moduleResolution": "node",
     "lib": [
       "dom",
-      "es5",
-      "es2015.promise",
-      "es2015.core",
-      "es2015.iterable",
-      "es2015.generator"
+      "es2020"
     ],
     "baseUrl": ".",
     "paths": {

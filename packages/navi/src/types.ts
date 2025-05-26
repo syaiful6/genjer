@@ -1,4 +1,4 @@
-import {LocationDescriptorObject} from 'history';
+import {To} from 'history';
 
 export type Pathname    = string;
 export type Search      = string;
@@ -7,11 +7,13 @@ export type LocationKey = string;
 
 export type PushAction = {
   type: 'push';
-} & LocationDescriptorObject;
+  to: To;
+  state?: any;
+};
 
 export type ReplaceAction = {
   type: 'replace';
-  pathname: Pathname;
+  to: To;
   state?: any;
 }
 
