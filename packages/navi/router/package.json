@@ -1,5 +1,5 @@
 {
-  "name": "@genjer/navi/router",
+  "name": "@genjer/navi-router",
   "main": "../lib/router.js",
   "typings": "../lib/router.d.ts",
   "module": "../lib/router.esm.js",

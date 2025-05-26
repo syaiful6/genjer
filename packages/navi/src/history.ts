@@ -1,9 +1,7 @@
 import {stepper, EventQueueInstance, Loop} from '@genjer/genjer';
 import {
-  History,
-  BrowserHistoryBuildOptions, createBrowserHistory,
-  HashHistoryBuildOptions, createHashHistory,
-  MemoryHistoryBuildOptions, createMemoryHistory
+  History, BrowserHistoryOptions, createBrowserHistory,
+  createHashHistory, MemoryHistoryOptions, createMemoryHistory
 } from 'history';
 
 import {makeHistoryNat, HistoryEff} from './history-eff';
@@ -30,20 +28,20 @@ export function makeHistoryInterpreters(history: History): [History, HistoryInte
 /**
  * Same as `makeHistoryInterpreters` but use browser history as History implementation
  */
-export function makeBrowserHistoryInterpreters(opts?: BrowserHistoryBuildOptions): [History, HistoryInterpreterPair] {
+export function makeBrowserHistoryInterpreters(opts?: BrowserHistoryOptions): [History, HistoryInterpreterPair] {
   return makeHistoryInterpreters(createBrowserHistory(opts));
 }
 
 /**
  * Same as `makeHistoryInterpreters` but use hash history as History implementation
  */
-export function makeHashHistoryInterpreters(opts?: HashHistoryBuildOptions): [History, HistoryInterpreterPair] {
+export function makeHashHistoryInterpreters(opts?: BrowserHistoryOptions): [History, HistoryInterpreterPair] {
   return makeHistoryInterpreters(createHashHistory(opts));
 }
 
 /**
  * Same as `makeHistoryInterpreters` but use memory history as History implementation
  */
-export function makeMemoryHistoryInterpreters(opts?: MemoryHistoryBuildOptions): [History, HistoryInterpreterPair] {
+export function makeMemoryHistoryInterpreters(opts?: MemoryHistoryOptions): [History, HistoryInterpreterPair] {
   return makeHistoryInterpreters(createMemoryHistory(opts));
 }
