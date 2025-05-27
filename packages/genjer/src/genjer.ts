@@ -71,8 +71,7 @@ type AppAction<M, Q, S, I>
   = { tag: AppActionType.RESTORE; payload: S }
   | { tag: AppActionType.ACTION; payload: I }
   | { tag: AppActionType.INTERPRET; payload: Either<M, Q> }
-  | { tag: AppActionType.RENDER }
-  | { tag: AppActionType.FORCERENDER };
+  | { tag: AppActionType.RENDER };
 
 type AppState<M, Q, S, I> = {
   model: S;
@@ -95,7 +94,7 @@ export function makeAppQueue<M, Q, S, I>(
     let ourSignal = makeSignal();
     let executionContext: number = ExecutionContext.NoWork;
 
-    ourSignal.subscribe(pushForce);
+    ourSignal.subscribe(pushRender);
 
     function pushAction(a: I) {
       return self.push({ tag: AppActionType.ACTION, payload: a });
@@ -103,14 +102,6 @@ export function makeAppQueue<M, Q, S, I>(
 
     function pushEffect(eff: M) {
       self.push({ tag: AppActionType.INTERPRET, payload: left(eff) });
-    }
-
-    function pushForce() {
-      self.push({ tag: AppActionType.FORCERENDER });
-      if ((executionContext & ExecutionContext.Run) !== ExecutionContext.Run) {
-        scheduleCallback(PriorityLevel.ImmediatePriority, self.run);
-        executionContext |= ExecutionContext.Run;
-      }
     }
 
     function runSubs(lo: Loop<Either<M, Q>>, subs: Q[]) {
@@ -150,9 +141,6 @@ export function makeAppQueue<M, Q, S, I>(
       case AppActionType.RESTORE:
         status = nextStatus(state.model, action.payload, state.status);
         return {...state, status, model: action.payload};
-
-      case AppActionType.FORCERENDER:
-        return {...state, status: RenderStatus.PENDING}
 
       case AppActionType.RENDER:
         // during render use switch current signal
