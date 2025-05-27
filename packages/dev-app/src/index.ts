@@ -1,13 +1,15 @@
-import {Children} from 'mithril';
+import {Children, Vnode, ClosureComponent} from 'mithril';
+import m from 'mithril/hyperscript'
 
 import {Dispatch, Transition, Batch, transition, purely, make, mergeInterpreter} from '@genjer/genjer';
 import {makeHashHistoryInterpreters, liftHistory, HistoryEff, HistorySub, onHistoryChange} from '@genjer/navi';
 import {createHistoryListener} from '@genjer/navi/router';
 import {createRender, h} from '@genjer/mithril';
 import {Page, routeMatcher} from './router';
+import Tabs, { TabAttrs } from './components/Tabs'
 
 // css
-import './css/index.css'
+import '../css/index.css'
 
 type Action
   = {tag: 'routeChange'; page: Page}
@@ -47,12 +49,36 @@ function view(dispatch: Dispatch<Action>, state: State): Children {
   const page = state.page;
   return h('div', [
     viewNavigation(dispatch),
+    state.page.id === 'tabs'
+      ? viewTabPage(dispatch, state)
+      : false,
     h('pre', JSON.stringify(page))
   ]);
 }
 
+function viewTabPage(_dispatch: Dispatch<Action>, _state: State) {
+  return m(Tabs, {
+    initial: 0,
+    render: ({ Tab, TabPanel }) => [
+      m('.flex',
+        m('.flex.flex-col.w-32',
+          m(Tab, {tab: 0 }, 'One'),
+          m(Tab, { tab: 1}, 'Two'),
+          m(Tab, { tab: 2 }, 'Three')
+        ),
+
+        m('.ml-4.p-2.border-l-2',
+          m(TabPanel, {tab: 0 }, 'Content Panel One'),
+          m(TabPanel, { tab: 1}, 'Content Panel Two'),
+          m(TabPanel, { tab: 2}, 'Content Panel Three'),
+        )
+      )
+    ]
+  })
+}
+
 function viewNavigation(dispatch: Dispatch<Action>): Children {
-  const links = [['/', 'Home'], ['/users', 'Users'], ['/about', 'About']];
+  const links = [['/', 'Home'], ['/tabs', 'Tabs'], ['/users', 'Users'], ['/about', 'About']];
   return h('ul', links.map(text =>
     h('li', {
       key: text[0],

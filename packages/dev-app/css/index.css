@@ -3,7 +3,7 @@
 @plugin 'tailwindcss-animate';
 
 /* Preline UI */
-@source '..';
+@source '../src';
 
 @theme {
   --font-sans:

@@ -8,6 +8,7 @@ export type BasePage<ID extends string, Payload = any> = {
 export type Page
   = BasePage<'home'>
   | BasePage<'users'>
+  | BasePage<'tabs'>
   | BasePage<'about'>
   | BasePage<'profile', {id: string}>
   | BasePage<'notfound'>
@@ -16,6 +17,7 @@ export type Page
 export const routeMatcher = createRouteMatcher<Page>({id: 'notfound', params: {}}, {
   '/': () => ({ id: 'home', params: {}}),
   '/about': () => ({ id: 'about', params: {}}),
+  '/tabs': () => ({ id: 'tabs', params: {} }),
   '/users': () => ({ id: 'users', params: {}}),
   '/users/:id': (params: {id: string}) => ({ id: 'users', params }),
 });
